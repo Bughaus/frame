@@ -1,0 +1,512 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                String               @id @default(uuid())
+  username          String               @unique
+  passwordHash      String
+  roles             Role[]               @default([MEMBER])
+  isActive          Boolean              @default(true)
+  lastLoginAt       DateTime?
+  loginAttempts     Int                  @default(0)
+  lockedUntil       DateTime?
+  language          String               @default("de")
+  twoFactorEnabled  Boolean              @default(false)
+  twoFactorSecret   String?
+  privacyAcceptedAt DateTime?
+  createdAt         DateTime             @default(now())
+  updatedAt         DateTime             @updatedAt
+  member            Member?
+  passwordResets    PasswordResetToken[]
+  refreshTokens     RefreshToken[]
+  rfidTokens        RfidToken[]
+
+  @@index([username])
+}
+
+model PasswordResetToken {
+  id        String    @id @default(uuid())
+  userId    String
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  token     String    @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+  revokedAt DateTime?
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+}
+
+model RfidToken {
+  id         String    @id @default(uuid())
+  tokenHash  String    @unique
+  label      String?
+  userId     String
+  isActive   Boolean   @default(true)
+  assignedAt DateTime  @default(now())
+  lastUsedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tokenHash])
+  @@index([userId])
+}
+
+model Member {
+  id                 String              @id @default(uuid())
+  memberNumber       String              @unique
+  userId             String              @unique
+  firstName          String
+  lastName           String
+  email              String?             @unique
+  phone              String?
+  mobile             String?
+  birthDate          DateTime?
+  street             String?
+  postalCode         String?
+  city               String?
+  country            String              @default("DE")
+  status             MemberStatus        @default(ACTIVE)
+  memberSince        DateTime            @default(now())
+  memberUntil        DateTime?
+  contributionTier   String?
+  avatarUrl          String?
+  importSource       ImportSource?
+  externalId         String?
+  notes              String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  dataChangeRequests DataChangeRequest[]
+  feedbacks          Feedback[]
+  hoursEntries       HoursEntry[]
+  user               User                @relation(fields: [userId], references: [id])
+  account            MemberAccount?
+
+  @@index([memberNumber])
+  @@index([lastName, firstName])
+  @@index([email])
+}
+
+model DataChangeRequest {
+  id         String    @id @default(uuid())
+  memberId   String
+  field      String
+  oldValue   String?
+  newValue   String
+  reason     String?
+  status     String    @default("PENDING")
+  reviewedBy String?
+  reviewedAt DateTime?
+  reviewNote String?
+  createdAt  DateTime  @default(now())
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model HoursQuota {
+  id            String   @id @default(uuid())
+  year          Int      @unique
+  requiredHours Decimal  @db.Decimal(6, 2)
+  description   String?
+  createdAt     DateTime @default(now())
+}
+
+model HoursEvent {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  date        DateTime
+  maxSlots    Int?
+  hoursValue  Decimal      @db.Decimal(6, 2)
+  location    String?
+  createdBy   String
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  entries     HoursEntry[]
+}
+
+model HoursEntry {
+  id          String      @id @default(uuid())
+  memberId    String
+  eventId     String?
+  date        DateTime
+  hours       Decimal     @db.Decimal(6, 2)
+  description String?
+  status      HoursStatus @default(PLANNED)
+  confirmedBy String?
+  confirmedAt DateTime?
+  year        Int
+  createdAt   DateTime    @default(now())
+  event       HoursEvent? @relation(fields: [eventId], references: [id])
+  member      Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, year])
+}
+
+model Feedback {
+  id         String           @id @default(uuid())
+  memberId   String
+  category   FeedbackCategory @default(OTHER)
+  subject    String
+  message    String
+  status     FeedbackStatus   @default(OPEN)
+  assignedTo String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  member     Member           @relation(fields: [memberId], references: [id])
+  replies    FeedbackReply[]
+
+  @@index([memberId])
+  @@index([status])
+}
+
+model FeedbackReply {
+  id         String   @id @default(uuid())
+  feedbackId String
+  authorId   String
+  message    String
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  feedback   Feedback @relation(fields: [feedbackId], references: [id], onDelete: Cascade)
+
+  @@index([feedbackId])
+}
+
+model DocumentCategory {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  nameEn    String?
+  sortOrder Int        @default(0)
+  documents Document[]
+}
+
+model Document {
+  id          String           @id @default(uuid())
+  categoryId  String
+  title       String
+  titleEn     String?
+  description String?
+  fileName    String
+  filePath    String
+  fileSize    Int
+  mimeType    String
+  version     String           @default("1.0")
+  uploadedBy  String
+  isActive    Boolean          @default(true)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  category    DocumentCategory @relation(fields: [categoryId], references: [id])
+
+  @@index([categoryId])
+}
+
+model CalendarEvent {
+  id               String             @id @default(uuid())
+  title            String
+  titleEn          String?
+  description      String?
+  descriptionEn    String?
+  startDate        DateTime
+  endDate          DateTime
+  allDay           Boolean            @default(false)
+  location         String?
+  category         String?
+  color            String?
+  maxAttendees     Int?
+  isPublic         Boolean            @default(true)
+  createdBy        String
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+  attendees        EventAttendee[]
+  GuestTransaction GuestTransaction[]
+}
+
+model EventAttendee {
+  id        String        @id @default(uuid())
+  eventId   String
+  memberId  String
+  status    String        @default("REGISTERED")
+  createdAt DateTime      @default(now())
+  event     CalendarEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, memberId])
+}
+
+model Article {
+  id               String            @id @default(uuid())
+  sku              String            @unique
+  name             String
+  nameEn           String?
+  description      String?
+  imageUrl         String?
+  price            Decimal           @db.Decimal(10, 2)
+  taxRate          Decimal           @default(0) @db.Decimal(5, 2)
+  category         String?
+  isActive         Boolean           @default(true)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  transactionItems TransactionItem[]
+}
+
+model MemberAccount {
+  id           String        @id @default(uuid())
+  memberId     String        @unique
+  balance      Decimal       @default(0) @db.Decimal(10, 2)
+  iban         String?
+  bic          String?
+  mandateId    String?
+  mandateDate  DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  invoices     Invoice[]
+  member       Member        @relation(fields: [memberId], references: [id])
+  transactions Transaction[]
+}
+
+model Transaction {
+  id          String            @id @default(uuid())
+  accountId   String
+  type        TransactionType
+  amount      Decimal           @db.Decimal(10, 2)
+  description String
+  reference   String?
+  invoiceId   String?
+  createdBy   String
+  reversedBy  String?
+  createdAt   DateTime          @default(now())
+  account     MemberAccount     @relation(fields: [accountId], references: [id])
+  invoice     Invoice?          @relation(fields: [invoiceId], references: [id])
+  items       TransactionItem[]
+
+  @@index([accountId])
+  @@index([createdAt])
+}
+
+model TransactionItem {
+  id            String      @id @default(uuid())
+  transactionId String
+  articleId     String?
+  quantity      Decimal     @default(1) @db.Decimal(8, 2)
+  unitPrice     Decimal     @db.Decimal(10, 2)
+  taxRate       Decimal     @default(0) @db.Decimal(5, 2)
+  description   String
+  article       Article?    @relation(fields: [articleId], references: [id])
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+}
+
+model Invoice {
+  id            String        @id @default(uuid())
+  invoiceNumber String        @unique
+  accountId     String
+  status        InvoiceStatus @default(DRAFT)
+  dueDate       DateTime?
+  pdfPath       String?
+  notes         String?
+  periodStart   DateTime?
+  periodEnd     DateTime?
+  totalNet      Decimal       @db.Decimal(10, 2)
+  totalTax      Decimal       @db.Decimal(10, 2)
+  totalGross    Decimal       @db.Decimal(10, 2)
+  createdBy     String
+  sentAt        DateTime?
+  paidAt        DateTime?
+  cancelledAt   DateTime?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  account       MemberAccount @relation(fields: [accountId], references: [id])
+  transactions  Transaction[]
+
+  @@index([accountId])
+  @@index([status])
+  @@index([invoiceNumber])
+}
+
+model GuestSlot {
+  id           String             @id @default(uuid())
+  slotNumber   Int                @unique
+  displayName  String?
+  reservedBy   String?
+  reservedAt   DateTime?
+  isActive     Boolean            @default(true)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  transactions GuestTransaction[]
+
+  @@index([slotNumber])
+  @@index([reservedBy])
+}
+
+model GuestTransaction {
+  id                  String             @id @default(uuid())
+  slotId              String
+  eventId             String?
+  responsibleMemberId String
+  items               Json
+  totalAmount         Decimal            @db.Decimal(10, 2)
+  paymentMethod       GuestPaymentMethod
+  paypalReference     String?
+  notes               String?
+  settledAt           DateTime?
+  createdAt           DateTime           @default(now())
+  event               CalendarEvent?     @relation(fields: [eventId], references: [id])
+  slot                GuestSlot          @relation(fields: [slotId], references: [id])
+
+  @@index([slotId])
+  @@index([responsibleMemberId])
+  @@index([settledAt])
+}
+
+model Eigenbeleg {
+  id           String                 @id @default(uuid())
+  type         EigenbelegType
+  amount       Decimal                @db.Decimal(10, 2)
+  date         DateTime
+  description  String
+  category     String?
+  createdBy    String
+  isReversed   Boolean                @default(false)
+  reversalNote String?
+  reversedAt   DateTime?
+  reversedBy   String?
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
+  attachments  EigenbelegAttachment[]
+
+  @@index([date])
+  @@index([createdBy])
+}
+
+model EigenbelegAttachment {
+  id           String     @id @default(uuid())
+  eigenbelegId String
+  fileName     String
+  filePath     String
+  fileSize     Int
+  mimeType     String
+  uploadedBy   String
+  createdAt    DateTime   @default(now())
+  eigenbeleg   Eigenbeleg @relation(fields: [eigenbelegId], references: [id], onDelete: Cascade)
+}
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  memberId    String
+  actorId     String
+  action      String
+  module      String
+  entityId    String?
+  description String
+  details     Json?
+  createdAt   DateTime @default(now())
+
+  @@index([memberId, createdAt])
+  @@index([memberId, module])
+}
+
+model SystemConfig {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  type      String   @default("string")
+  group     String?
+  label     String?
+  updatedBy String?
+  updatedAt DateTime @updatedAt
+}
+
+model ImportLog {
+  id           String       @id @default(uuid())
+  source       ImportSource
+  fileName     String?
+  totalRows    Int
+  importedRows Int
+  skippedRows  Int
+  errorRows    Int
+  status       String
+  errors       Json?
+  createdBy    String
+  createdAt    DateTime     @default(now())
+}
+
+enum Role {
+  MEMBER
+  VORSTAND
+  SCHATZMEISTER
+  MITARBEITER
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING
+}
+
+enum FeedbackStatus {
+  OPEN
+  IN_PROGRESS
+  ANSWERED
+  CLOSED
+}
+
+enum FeedbackCategory {
+  QUESTION
+  FEEDBACK
+  COMPLAINT
+  OTHER
+}
+
+enum TransactionType {
+  DEBIT
+  CREDIT
+  ADJUSTMENT
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  PAID
+  OVERDUE
+  CANCELLED
+}
+
+enum HoursStatus {
+  PLANNED
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  REJECTED
+}
+
+enum ImportSource {
+  CAMPEI
+  CSV_GENERIC
+  MANUAL
+}
+
+enum GuestPaymentMethod {
+  PENDING
+  CASH
+  PAYPAL
+}
+
+enum EigenbelegType {
+  INCOME
+  EXPENSE
+}

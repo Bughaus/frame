@@ -1,0 +1,372 @@
+import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
+import { CreateTransactionDto } from './dto/create-transaction.dto';
+import { CreateGuestTransactionDto } from './dto/create-guest-transaction.dto';
+import { GuestPaymentMethod } from '@prisma/client';
+
+@Injectable()
+export class CashRegisterService {
+  constructor(private prisma: PrismaService) {}
+
+  async createTransaction(dto: CreateTransactionDto, userId: string) {
+    if (!dto.items || dto.items.length === 0) throw new BadRequestException('Transaction must contain at least one item.');
+
+    return this.prisma.$transaction(async (tx) => {
+      let totalAmount = 0;
+      const dbItems = [];
+
+      for (const item of dto.items) {
+        const article = await tx.article.findUnique({ where: { id: item.articleId } });
+        if (!article || !article.isActive) throw new BadRequestException(`Article ${item.articleId} is invalid or inactive`);
+        
+        totalAmount += Number(article.price) * item.quantity;
+        dbItems.push({
+          articleId: article.id,
+          quantity: item.quantity,
+          unitPrice: article.price,
+          taxRate: article.taxRate,
+          description: article.name
+        });
+      }
+
+      const charge = -Math.abs(totalAmount);
+
+      const transaction = await tx.transaction.create({
+        data: {
+          accountId: dto.accountId,
+          amount: charge,
+          type: 'DEBIT',
+          description: dto.description || 'Terminalbuchung (System)',
+          createdBy: userId,
+          items: {
+            create: dbItems
+          }
+        }
+      });
+
+      await tx.memberAccount.update({
+        where: { id: dto.accountId },
+        data: { balance: { increment: charge } }
+      });
+
+      return transaction;
+    });
+  }
+
+  getAccounts() {
+    return this.prisma.memberAccount.findMany({ 
+      where: { member: { status: 'ACTIVE' } },
+      include: { 
+        member: { select: { id: true, firstName: true, lastName: true, memberNumber: true } } 
+      } 
+    });
+  }
+
+  getAccount(id: string) {
+    return this.prisma.memberAccount.findUnique({ 
+      where: { id }, 
+      include: { 
+        member: true, 
+        transactions: { include: { items: { include: { article: true } } }, orderBy: { createdAt: 'desc' } } 
+      } 
+    });
+  }
+
+  async getAccountByUserId(userId: string) {
+    const member = await this.prisma.member.findUnique({ where: { userId } });
+    if (!member) throw new NotFoundException('Member profile not found.');
+    return this.prisma.memberAccount.findUnique({
+      where: { memberId: member.id },
+      include: {
+        member: true,
+        transactions: { include: { items: { include: { article: true } } }, orderBy: { createdAt: 'desc' } }
+      }
+    });
+  }
+
+  // -- INVOICES & EXPORTS --
+
+  async generateInvoices(accountIds: string[], dueDate: Date, userId: string) {
+    const createdInvoices = [];
+    for (const accountId of accountIds) {
+      const invoice = await this.prisma.$transaction(async (tx) => {
+        const account = await tx.memberAccount.findUnique({
+          where: { id: accountId },
+          include: { transactions: { where: { invoiceId: null, type: 'DEBIT' } } }
+        });
+        if (!account || account.transactions.length === 0) return null;
+
+        const totalAmount = account.transactions.reduce((acc, t) => acc + Math.abs(Number(t.amount)), 0);
+
+        const newInvoice = await tx.invoice.create({
+          data: {
+            invoiceNumber: `INV-${Date.now()}-${Math.floor(Math.random()*1000)}`,
+            accountId,
+            dueDate: new Date(dueDate),
+            totalNet: totalAmount, 
+            totalTax: 0,
+            totalGross: totalAmount,
+            createdBy: userId,
+            status: 'DRAFT',
+            transactions: { connect: account.transactions.map(t => ({ id: t.id })) }
+          }
+        });
+
+        return newInvoice;
+      });
+
+      if (invoice) createdInvoices.push(invoice);
+    }
+    return createdInvoices;
+  }
+
+  getInvoices() {
+    return this.prisma.invoice.findMany({ include: { account: { include: { member: true } } }, orderBy: { createdAt: 'desc' } });
+  }
+
+  async updateInvoiceStatus(id: string, status: 'PAID' | 'CANCELLED') {
+    return this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.update({
+        where: { id },
+        include: { account: true },
+        data: {
+          status,
+          paidAt: status === 'PAID' ? new Date() : undefined,
+          cancelledAt: status === 'CANCELLED' ? new Date() : undefined,
+        }
+      });
+
+      if (status === 'PAID') {
+        // Now settle the balance
+        await tx.transaction.create({
+          data: {
+            accountId: invoice.accountId,
+            amount: invoice.totalGross,
+            type: 'CREDIT',
+            description: `Rechnungsausgleich (Bezahlt): ${invoice.invoiceNumber}`,
+            createdBy: 'System', // Or pass user from controller
+            invoiceId: invoice.id
+          }
+        });
+
+        await tx.memberAccount.update({
+          where: { id: invoice.accountId },
+          data: { balance: { increment: invoice.totalGross } }
+        });
+      }
+
+      return invoice;
+    });
+  }
+
+  async getInvoicesByUserId(userId: string) {
+    const member = await this.prisma.member.findUnique({ where: { userId } });
+    if (!member) throw new NotFoundException('Member profile not found.');
+    return this.prisma.invoice.findMany({ 
+      where: { account: { memberId: member.id } }, 
+      orderBy: { createdAt: 'desc' } 
+    });
+  }
+
+  async generateInvoicePdf(invoiceId: string): Promise<Buffer> {
+    const PDFDocument = require('pdfkit');
+    const invoice = await this.prisma.invoice.findUnique({ where: { id: invoiceId }, include: { account: { include: { member: true } }, transactions: { include: { items: { include: { article: true } } } } } });
+    if (!invoice) throw new NotFoundException('Invoice not found');
+    
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50 });
+      const buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      doc.fontSize(20).text(`Rechnung ${invoice.invoiceNumber}`, { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`Mitglied: ${invoice.account.member.firstName} ${invoice.account.member.lastName}`);
+      doc.text(`Mitglieds-Nr.: ${invoice.account.member.memberNumber}`);
+      doc.text(`Datum: ${invoice.createdAt.toLocaleDateString('de-DE')}`);
+      doc.text(`Fällig: ${invoice.dueDate ? invoice.dueDate.toLocaleDateString('de-DE') : '-'}`);
+      doc.moveDown();
+
+      // Table header
+      const startY = doc.y;
+      doc.font('Helvetica-Bold').fontSize(10);
+      doc.text('Datum', 50, startY);
+      doc.text('Artikel', 130, startY);
+      doc.text('Menge', 300, startY);
+      doc.text('Preis', 350, startY);
+      doc.text('Gebucht von', 420, startY);
+      doc.moveTo(50, startY + 15).lineTo(550, startY + 15).stroke();
+      
+      doc.font('Helvetica').fontSize(9);
+      let y = startY + 22;
+      for (const t of invoice.transactions) {
+        if (t.items && t.items.length > 0) {
+          for (const item of t.items) {
+            doc.text(t.createdAt.toLocaleDateString('de-DE'), 50, y);
+            doc.text(item.description || item.article?.name || 'Artikel', 130, y, { width: 160 });
+            doc.text(String(Number(item.quantity)), 300, y);
+            doc.text(`${Number(item.unitPrice).toFixed(2)} €`, 350, y);
+            doc.text(t.createdBy || '-', 420, y, { width: 120 });
+            y += 16;
+          }
+        } else {
+          doc.text(t.createdAt.toLocaleDateString('de-DE'), 50, y);
+          doc.text(t.description, 130, y, { width: 160 });
+          doc.text('', 300, y);
+          doc.text(`${Math.abs(Number(t.amount)).toFixed(2)} €`, 350, y);
+          doc.text(t.createdBy || '-', 420, y, { width: 120 });
+          y += 16;
+        }
+      }
+
+      doc.moveTo(50, y + 5).lineTo(550, y + 5).stroke();
+      doc.font('Helvetica-Bold').fontSize(12);
+      doc.text(`Gesamtbetrag: ${Number(invoice.totalGross).toFixed(2)} EUR`, 50, y + 15, { align: 'right' });
+      doc.end();
+    });
+  }
+
+  async generateSepaXml(invoiceIds: string[]): Promise<string> {
+    const { create } = require('xmlbuilder2');
+    const invoices = await this.prisma.invoice.findMany({ where: { id: { in: invoiceIds } }, include: { account: { include: { member: true } } } });
+    if (invoices.length === 0) throw new BadRequestException('No valid invoices');
+
+    const doc = create({ version: '1.0', encoding: 'UTF-8' })
+      .ele('Document', { xmlns: 'urn:iso:std:iso:20022:tech:xsd:pain.008.001.02' })
+        .ele('CstmrDrctDbtInitn')
+          .ele('GrpHdr')
+            .ele('MsgId').txt(`MSG-${Date.now()}`).up()
+            .ele('CreDtTm').txt(new Date().toISOString()).up()
+            .ele('NbOfTxs').txt(invoices.length.toString()).up()
+            .ele('InitgPty')
+              .ele('Nm').txt('VereinApp').up()
+            .up()
+          .up()
+        .up()
+      .up();
+    return doc.end({ prettyPrint: true });
+  }
+
+  // -- GUEST SLOTS & RECEIPT --
+
+  getGuestSlots() {
+    return this.prisma.guestSlot.findMany({ orderBy: { slotNumber: 'asc' } });
+  }
+
+  getEigenbelege() {
+    return this.prisma.eigenbeleg.findMany({ orderBy: { date: 'desc' }, include: { attachments: true } });
+  }
+
+  async getGlobalTransactions() {
+    const memTx = await this.prisma.transaction.findMany({
+      include: { account: { include: { member: true } } },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+    const guestTx = await this.prisma.guestTransaction.findMany({
+      include: { slot: true },
+      orderBy: { createdAt: 'desc' },
+      take: 100
+    });
+
+    const combined = [
+      ...memTx.map(t => ({
+        id: t.id,
+        date: t.createdAt,
+        amount: Number(t.amount),
+        type: t.type,
+        source: t.account.member ? `${t.account.member.firstName} ${t.account.member.lastName}` : 'System',
+        description: t.description,
+        isGuest: false
+      })),
+      ...guestTx.map(t => ({
+        id: t.id,
+        date: t.createdAt,
+        amount: Number(t.totalAmount) * -1, // Normalizing formatting for UI
+        type: 'DEBIT',
+        source: t.slot.displayName || `Slot ${t.slot.slotNumber}`,
+        description: `Gastbuchung (${t.paymentMethod})`,
+        isGuest: true
+      }))
+    ];
+
+    combined.sort((a, b) => b.date.getTime() - a.date.getTime());
+    return combined.slice(0, 100);
+  }
+
+  async createGuestTransaction(dto: CreateGuestTransactionDto, userId: string) {
+    if (!dto.items || dto.items.length === 0) throw new BadRequestException('Transaction must contain at least one item.');
+    let totalAmount = 0;
+    const dbItems = [];
+
+    for (const item of dto.items) {
+      const article = await this.prisma.article.findUnique({ where: { id: item.articleId } });
+      if (!article || !article.isActive) throw new BadRequestException(`Article ${item.articleId} is invalid/inactive`);
+      totalAmount += Number(article.price) * item.quantity;
+      dbItems.push({
+        articleId: article.id,
+        name: article.name,
+        qty: item.quantity,
+        unitPrice: article.price
+      });
+    }
+
+    const transaction = await this.prisma.guestTransaction.create({
+      data: {
+        slotId: dto.slotId,
+        responsibleMemberId: userId,
+        items: dbItems,
+        totalAmount,
+        paymentMethod: 'PENDING' as any,
+        paypalReference: null,
+      }
+    });
+
+    await this.prisma.guestSlot.update({
+      where: { id: dto.slotId },
+      data: { isActive: false }
+    });
+
+    return transaction;
+  }
+
+  async clearGuestSlot(slotId: string, paymentMethod: 'CASH' | 'PAYPAL', paypalReference?: string, userId: string = 'System') {
+    await this.prisma.guestTransaction.updateMany({
+        where: { slotId, settledAt: null, paymentMethod: 'PENDING' as any },
+        data: { 
+          settledAt: new Date(),
+          paymentMethod: paymentMethod as any,
+          paypalReference: paymentMethod === 'PAYPAL' ? paypalReference : null
+        }
+    });
+
+    const slot = await this.prisma.guestSlot.findUnique({ where: { id: slotId } });
+
+    return this.prisma.guestSlot.update({
+        where: { id: slotId },
+        data: { isActive: true, displayName: `Gast ${slot?.slotNumber}` }
+    });
+  }
+
+  async createEigenbeleg(type: 'INCOME'|'EXPENSE', amount: number, description: string, date: string, category: string, file: Express.Multer.File, userId: string) {
+    return this.prisma.eigenbeleg.create({
+        data: {
+            type,
+            amount,
+            description,
+            date: new Date(date),
+            category,
+            createdBy: userId,
+            attachments: file ? {
+                create: {
+                    fileName: file.originalname,
+                    filePath: file.path,
+                    fileSize: file.size,
+                    mimeType: file.mimetype,
+                    uploadedBy: userId
+                }
+            } : undefined
+        }
+    });
+  }
+}

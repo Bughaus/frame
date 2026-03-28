@@ -1,0 +1,9 @@
+{
+  "nav": {
+    "dashboard": "Übersicht"
+  },
+  "auth": {
+    "login": "Anmelden",
+    "logout": "Abmelden"
+  }
+}
