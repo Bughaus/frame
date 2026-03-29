@@ -30,7 +30,7 @@
           Verzehr
           <v-tooltip activator="parent" location="bottom">Persönliches Verzehr-Dashboard</v-tooltip>
         </v-btn>
-        <v-btn v-if="authStore.isAuthenticated" to="/pos" prepend-icon="mdi-cash-register" variant="flat" class="nav-tab ml-1">
+        <v-btn v-if="authStore.isAuthenticated && authStore.hasRole(['VORSTAND', 'MITARBEITER'])" to="/pos" prepend-icon="mdi-cash-register" variant="flat" class="nav-tab ml-1">
           Event Kasse
           <v-tooltip activator="parent" location="bottom">Kassenoberfläche für Events & Verkauf</v-tooltip>
         </v-btn>
