@@ -20,6 +20,7 @@
                 <v-divider class="mb-6"></v-divider>
                 
                 <v-btn
+                  v-if="deviceStore.isAuthorized"
                   variant="text"
                   color="secondary"
                   @click="loginMode = 'password'"
@@ -34,7 +35,7 @@
                 <div class="d-flex align-center mb-6">
                    <h1 class="text-h5 font-weight-bold">{{ t('auth.login') }}</h1>
                    <v-spacer></v-spacer>
-                   <v-btn icon="mdi-close" variant="text" size="small" @click="loginMode = 'rfid'"></v-btn>
+                   <v-btn v-if="deviceStore.isAuthorized" icon="mdi-close" variant="text" size="small" @click="loginMode = 'rfid'"></v-btn>
                 </div>
 
                 <v-form @submit.prevent="handleLogin">
@@ -62,7 +63,7 @@
                   </v-btn>
                 </v-form>
 
-                <div class="mt-6 text-center">
+                <div v-if="deviceStore.isAuthorized" class="mt-6 text-center">
                   <v-btn variant="text" color="secondary" size="small" @click="loginMode = 'rfid'" prepend-icon="mdi-contactless-payment">
                     {{ t('auth.backToScan', 'Zurück zum RFID-Scan') }}
                   </v-btn>
@@ -90,13 +91,16 @@ import { useAuthStore } from '../../stores/auth.store'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 
+import { useDeviceStore } from '../../stores/device.store'
+
 const authStore = useAuthStore()
+const deviceStore = useDeviceStore()
 const router = useRouter()
 const { t } = useI18n()
 
 const username = ref('')
 const password = ref('')
-const loginMode = ref<'rfid' | 'password'>('rfid')
+const loginMode = ref<'rfid' | 'password'>(deviceStore.isAuthorized ? 'rfid' : 'password')
 const isLoading = ref(false)
 const errorMsg = ref('')
 

@@ -5,7 +5,7 @@
       <h1 class="text-h3 font-weight-bold">Mitglieder</h1>
       <v-spacer></v-spacer>
       <div>
-        <v-btn color="secondary" variant="tonal" prepend-icon="mdi-contactless-payment" class="mr-2" @click="openIdentifyDialog">Identifizieren</v-btn>
+        <v-btn v-if="deviceStore.isAuthorized" color="secondary" variant="tonal" prepend-icon="mdi-contactless-payment" class="mr-2" @click="openIdentifyDialog">Identifizieren</v-btn>
         <v-btn color="secondary" variant="tonal" prepend-icon="mdi-download" class="mr-2" @click="exportCsv">Export CSV</v-btn>
         <v-btn color="primary" prepend-icon="mdi-account-plus" @click="openDialog()">Neues Mitglied</v-btn>
       </div>
@@ -101,7 +101,7 @@
                 <v-select v-model="editedItem.roles" :items="['MEMBER', 'MITARBEITER', 'VORSTAND', 'TREASURER']" label="Rollen" multiple chips variant="outlined" density="compact" hint="Bestimmt, welche Bereiche die Person sehen kann." persistent-hint></v-select>
               </v-col>
             </v-row>
-            <v-row v-if="isEditing">
+            <v-row v-if="isEditing && deviceStore.isAuthorized">
               <v-col cols="12">
                 <v-alert v-if="rfidMsg" :type="rfidSuccess ? 'success' : 'error'" class="mb-4" density="compact">{{ rfidMsg }}</v-alert>
                 <v-text-field 
@@ -163,8 +163,10 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { membersApi, type Member } from '../api/members'
 import { api } from '../api/axios'
 import { useI18n } from 'vue-i18n'
+import { useDeviceStore } from '../stores/device.store'
 
 const { t } = useI18n()
+const deviceStore = useDeviceStore()
 
 const headers: any = [
   { title: 'Mitglieds-Nr.', key: 'memberNumber' },
