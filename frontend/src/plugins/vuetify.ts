@@ -13,6 +13,7 @@ const vereinTheme = {
     secondary: '#4E342E',
     'on-secondary': '#FFFFFF',
     accent: '#FFD600',
+    'on-accent': '#000000',
     error: '#C62828',
     warning: '#E65100',
     info: '#0277BD',
@@ -34,6 +35,7 @@ const vereinDarkTheme = {
     secondary: '#A1887F',
     'on-secondary': '#000000',
     accent: '#FFD600',
+    'on-accent': '#000000',
     error: '#EF5350',
     warning: '#FF9800',
     info: '#29B6F6',
@@ -43,7 +45,28 @@ const vereinDarkTheme = {
     surface: '#1A2E1C',
     'on-surface': '#E8F5E9',
     'surface-variant': '#2E4830',
-    'on-surface-variant': '#C8E6C9', // Light green text on dark green variant
+    'on-surface-variant': '#C8E6C9',
+  }
+}
+
+const highContrastTheme = {
+  dark: true,
+  colors: {
+    primary: '#FFFF00', // Bright Yellow
+    'on-primary': '#000000',
+    secondary: '#FFFFFF',
+    'on-secondary': '#000000',
+    accent: '#FFFF00',
+    error: '#FF0000',
+    warning: '#FFFF00',
+    info: '#FFFFFF',
+    success: '#00FF00',
+    background: '#000000',
+    'on-background': '#FFFFFF',
+    surface: '#000000',
+    'on-surface': '#FFFFFF',
+    'surface-variant': '#1A1A1A',
+    'on-surface-variant': '#FFFF00',
   }
 }
 
@@ -55,6 +78,7 @@ export const vuetify = createVuetify({
     themes: {
       vereinTheme,
       vereinDarkTheme,
+      highContrastTheme,
     },
   },
   icons: {

@@ -52,7 +52,6 @@
               class="nav-tab ml-1 px-2"
               :class="{ 'v-btn--active': isAdminActive }"
               append-icon="mdi-chevron-down"
-              color="white"
             >
               <template #prepend>
                 <v-badge 
@@ -108,7 +107,6 @@
               variant="tonal"
               rounded="pill"
               class="px-2 ml-2 bg-surface-variant"
-              color="white"
             >
               <v-icon start>mdi-account-circle</v-icon>
               <span class="text-none font-weight-bold">{{ userFullName }}</span>
@@ -130,12 +128,26 @@
           </v-list-item>
           <v-list-item to="/help" prepend-icon="mdi-help-circle-outline" title="Hilfe & Anleitungen"></v-list-item>
           <v-divider class="my-1"></v-divider>
+          
+          <v-list-subheader class="text-overline px-4">Design</v-list-subheader>
           <v-list-item 
-            @click="toggleTheme" 
-            :prepend-icon="isDark ? 'mdi-weather-sunny' : 'mdi-weather-night'"
-            :title="isDark ? 'Helles Design' : 'Dunkles Design'"
-          >
-          </v-list-item>
+            @click="setTheme('vereinTheme')" 
+            prepend-icon="mdi-weather-sunny" 
+            title="Helles Design"
+            :active="theme.global.name.value === 'vereinTheme'"
+          ></v-list-item>
+          <v-list-item 
+            @click="setTheme('vereinDarkTheme')" 
+            prepend-icon="mdi-weather-night" 
+            title="Dunkles Design"
+            :active="theme.global.name.value === 'vereinDarkTheme'"
+          ></v-list-item>
+          <v-list-item 
+            @click="setTheme('highContrastTheme')" 
+            prepend-icon="mdi-contrast-circle" 
+            title="Barrierefrei (Hochkontrast)"
+            :active="theme.global.name.value === 'highContrastTheme'"
+          ></v-list-item>
           <v-divider class="my-1"></v-divider>
           <v-list-item @click="logout" prepend-icon="mdi-logout" title="Abmelden" color="error"></v-list-item>
         </v-list>
@@ -198,7 +210,6 @@ const isAdminActive = computed(() => adminRoutes.some(r => route.path.startsWith
 declare const __APP_VERSION__: string
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.1.0'
 
-const isDark = computed(() => theme.global.name.value === 'vereinDarkTheme')
 const aboutDialog = ref(false)
 
 const userFullName = computed(() => {
@@ -209,13 +220,14 @@ const userFullName = computed(() => {
 
 onMounted(() => {
   const saved = localStorage.getItem('theme-mode')
-  if (saved) theme.global.name.value = saved
+  if (saved && ['vereinTheme', 'vereinDarkTheme', 'highContrastTheme'].includes(saved)) {
+    theme.global.name.value = saved
+  }
 })
 
-function toggleTheme() {
-  const newTheme = isDark.value ? 'vereinTheme' : 'vereinDarkTheme'
-  theme.global.name.value = newTheme
-  localStorage.setItem('theme-mode', newTheme)
+function setTheme(name: string) {
+  theme.global.name.value = name
+  localStorage.setItem('theme-mode', name)
 }
 
 const logout = () => {
@@ -283,7 +295,7 @@ onMounted(() => {
   text-transform: none !important;
   font-weight: 600 !important;
   background-color: transparent !important;
-  color: rgba(255, 255, 255, 0.7) !important;
+  color: rgba(var(--v-theme-on-primary), 0.7) !important;
   transition: all 0.2s ease;
 }
 
