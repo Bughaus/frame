@@ -1,147 +1,75 @@
 <template>
-  <v-container fluid>
-    <div class="d-flex align-center mb-6">
-      <v-icon size="x-large" color="primary" class="mr-3">mdi-cash-register</v-icon>
-      <h1 class="text-h3 font-weight-bold">Persönliches Terminal</h1>
-    </div>
+  <v-container fluid class="fill-height pa-4 d-flex flex-column overflow-hidden" style="height: calc(100vh - 48px - 36px); max-height: calc(100vh - 48px - 36px);">
     
-    <v-row v-if="account">
+    <v-row v-if="account" class="flex-grow-1 overflow-hidden w-100 ma-0" justify="start">
       <!-- Left side: Balance & Cart -->
-      <v-col cols="12" md="4">
-        <v-card class="mb-4 elevation-2">
-          <v-card-title class="bg-primary text-white">Mein Kontostand</v-card-title>
-          <v-card-text class="pt-6 text-center">
-            <div class="text-h3 font-weight-black" :class="Number(account.balance) < 0 ? 'text-error' : 'text-success'">
+      <v-col cols="12" md="4" class="d-flex flex-column fill-height pb-2">
+        <v-card class="mb-4 elevation-2 flex-shrink-0">
+          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">Mein Kontostand</v-card-title>
+          <v-card-text class="pt-4 pb-2 text-center">
+            <div class="text-h4 font-weight-black" :class="Number(account.balance) < 0 ? 'text-error' : 'text-success'">
               {{ Number(account.balance).toFixed(2) }}€
             </div>
-            <div class="text-caption text-grey mt-2">Guthaben / Offener Deckel</div>
+            <div class="text-caption text-grey mt-1">Guthaben / Offener Deckel</div>
           </v-card-text>
         </v-card>
 
-        <v-card class="mb-4 elevation-2">
-          <v-card-title class="bg-primary text-white">Arbeitsstunden {{ currentYear }}</v-card-title>
-          <v-card-text class="pt-6 text-center">
-            <div class="text-h3 font-weight-bold text-primary">
-              {{ hoursStats.confirmedHours }} / {{ requiredHours }}h
-            </div>
-            <v-progress-linear
-              :model-value="requiredHours > 0 ? (hoursStats.confirmedHours / requiredHours) * 100 : 0"
-              color="primary" height="10" rounded class="mt-4"
-            ></v-progress-linear>
-            <div class="text-caption text-grey mt-2 text-center">
-              Gesamt inkl. geplant: {{ hoursStats.totalHours }}h
-            </div>
-          </v-card-text>
-        </v-card>
-        
-        <v-card class="elevation-2">
-          <v-card-title class="bg-primary text-white">Mein Warenkorb</v-card-title>
-          <v-list density="compact" class="pt-0 pb-0 bg-transparent">
+        <v-card class="elevation-2 d-flex flex-column flex-grow-1 overflow-hidden mb-2">
+          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">Mein Warenkorb</v-card-title>
+          <v-list density="compact" class="pt-0 pb-0 bg-transparent flex-grow-1 overflow-y-scroll">
             <v-list-item v-for="(item, i) in cart" :key="i">
-              <template #prepend>
-                <span class="font-weight-bold mr-2">{{ item.quantity }}x</span>
-              </template>
-              <v-list-item-title>{{ item.article.name }}</v-list-item-title>
+              <v-list-item-title class="font-weight-bold text-body-2">{{ item.article.name }}</v-list-item-title>
               <template #append>
-                <span class="mr-4">{{ (Number(item.article.price) * item.quantity).toFixed(2) }}€</span>
-                <v-btn icon="mdi-delete" size="small" variant="text" color="error" @click="removeFromCart(i)"></v-btn>
+                <div class="d-flex align-center">
+                  <span class="mr-2 text-primary text-body-2 font-weight-bold">{{ item.quantity }}x</span>
+                  <span class="mr-1 text-body-2">{{ (Number(item.article.price) * item.quantity).toFixed(2) }}€</span>
+                  <v-btn icon="mdi-delete" size="x-small" variant="text" color="error" @click="removeFromCart(i)"></v-btn>
+                </div>
               </template>
+            </v-list-item>
+            <v-list-item v-if="cart.length === 0">
+              <v-alert type="info" variant="tonal" class="mt-2 text-center py-2" density="compact">Warenkorb leer.</v-alert>
             </v-list-item>
           </v-list>
           
           <v-divider></v-divider>
-          <v-card-text class="d-flex justify-space-between align-center text-h6 font-weight-bold">
-            <span>Total:</span>
-            <span>{{ cartTotal.toFixed(2) }}€</span>
-          </v-card-text>
-          <v-card-actions class="pa-4 pt-0">
-            <v-btn color="success" block size="large" variant="flat" elevation="2" @click="checkout" :loading="checkingOut" :disabled="cart.length === 0">
-              Jetzt Buchen
-            </v-btn>
-          </v-card-actions>
+          <div class="bg-surface-variant flex-shrink-0" style="height: 104px;">
+            <v-card-text class="d-flex justify-space-between align-center text-h6 font-weight-bold py-2">
+              <span>Total:</span>
+              <span>{{ cartTotal.toFixed(2) }}€</span>
+            </v-card-text>
+            <v-card-actions class="pa-2 pt-0">
+              <v-btn color="success" block size="large" variant="flat" elevation="2" @click="checkout" :loading="checkingOut" :disabled="cart.length === 0">
+                Jetzt Buchen
+              </v-btn>
+            </v-card-actions>
+          </div>
         </v-card>
       </v-col>
 
-      <!-- Right side: Articles Grid & History -->
-      <v-col cols="12" md="8">
-        <v-card class="mb-6 elevation-2">
-          <v-card-title class="bg-surface-variant d-flex align-center flex-wrap">
-            <span>Artikel Auswahl</span>
-            <v-spacer></v-spacer>
-            <v-chip-group v-model="selectedCategory" selected-class="text-primary" filter mandatory>
-              <v-chip v-for="cat in categories" :key="cat" :value="cat" variant="tonal" size="small">{{ cat }}</v-chip>
+      <!-- Right side: Articles Grid -->
+      <v-col cols="12" md="8" class="d-flex flex-column fill-height pb-2">
+        <v-card class="d-flex flex-column fill-height mb-0 elevation-2">
+          <v-card-title class="bg-surface-variant d-flex align-center flex-wrap py-1 flex-shrink-0">
+            <span class="text-subtitle-1 font-weight-bold mr-4">Artikel Auswahl</span>
+            <v-chip-group v-model="selectedCategory" selected-class="text-primary" filter mandatory size="small">
+              <v-chip v-for="cat in categories" :key="cat" :value="cat" variant="tonal" size="small" class="mr-1">{{ cat }}</v-chip>
             </v-chip-group>
           </v-card-title>
-          <v-card-text class="pt-4 bg-surface overflow-y-auto" style="max-height: 500px">
-            <v-row>
-              <v-col v-for="article in filteredArticles" :key="article.id" cols="6" sm="4" md="3">
-                <v-card @click="addToCart(article)" hover class="text-center pa-4" elevation="1">
-                  <v-avatar size="64" class="mb-2" rounded="lg">
+          <v-card-text class="pt-4 overflow-y-scroll flex-grow-1 px-4" style="scrollbar-gutter: stable;">
+            <v-row dense class="w-100">
+              <v-col v-for="article in filteredArticles" :key="article.id" cols="6" sm="4" md="3" lg="3">
+                <v-card @click="addToCart(article)" hover class="text-center pa-2 article-card h-100 d-flex flex-column" elevation="1" variant="outlined">
+                  <v-avatar size="56" class="mx-auto mb-1" rounded="lg">
                     <v-img v-if="article.imageUrl" :src="getImageUrl(article.imageUrl)" cover></v-img>
-                    <v-icon v-else size="48" color="primary">mdi-food-apple</v-icon>
+                    <v-icon v-else size="32" color="primary">mdi-food-apple</v-icon>
                   </v-avatar>
-                  <div class="text-subtitle-1 font-weight-bold">{{ article.name }}</div>
-                  <div class="text-caption font-weight-black text-primary">{{ Number(article.price).toFixed(2) }}€</div>
+                  <div class="text-caption font-weight-bold text-truncate w-100" :title="article.name">{{ article.name }}</div>
+                  <div class="text-button font-weight-black text-primary mt-auto">{{ Number(article.price).toFixed(2) }}€</div>
                 </v-card>
               </v-col>
             </v-row>
           </v-card-text>
-        </v-card>
-
-        <v-card class="elevation-2">
-          <v-card-title class="bg-surface-variant d-flex justify-space-between align-center">
-            Meine Letzten Buchungen
-            <v-select
-              v-model="filterMode"
-              :items="[
-                { title: 'Alle Buchungen', value: 'ALL' },
-                { title: 'Noch nicht abgerechnet', value: 'UNINVOICED' },
-                { title: 'Dieser Monat', value: 'CURRENT_MONTH' },
-                { title: 'Letzter Monat', value: 'LAST_MONTH' }
-              ]"
-              density="compact"
-              hide-details
-              variant="outlined"
-              style="max-width: 200px"
-              class="ml-4"
-            ></v-select>
-          </v-card-title>
-          <v-data-table :headers="headers" :items="filteredTransactions" class="bg-surface" density="compact">
-            <template #item.amount="{ item }: { item: any }">
-              <span :class="item.type === 'DEBIT' ? 'text-error font-weight-bold' : 'text-success font-weight-bold'">
-                {{ item.type === 'DEBIT' ? '-' : '+' }}{{ Math.abs(Number(item.amount)).toFixed(2) }}€
-              </span>
-            </template>
-            <template #item.createdAt="{ item }: { item: any }">
-              {{ new Date(item.createdAt).toLocaleString('de-DE') }}
-            </template>
-            <template #item.details="{ item }: { item: any }">
-              <span v-if="item.description">{{ item.description }}</span>
-              <span v-else>
-                {{ item.items?.map((i: any) => `${i.qty}x ${i.article?.name || 'Artikel'}`).join(', ') }}
-              </span>
-            </template>
-            <template #item.createdBy="{ item }: { item: any }">
-              <v-chip size="small" variant="flat" :color="isUuid(item.createdBy) ? 'grey' : 'primary'">{{ isUuid(item.createdBy) ? 'System' : (item.createdBy || 'Unbekannt') }}</v-chip>
-            </template>
-          </v-data-table>
-        </v-card>
-
-        <v-card class="elevation-2 mt-6">
-          <v-card-title class="bg-surface-variant d-flex justify-space-between align-center">
-            Meine Rechnungen
-          </v-card-title>
-          <v-data-table :headers="invoiceHeaders" :items="invoices" class="bg-surface" density="compact">
-            <template #item.totalNet="{ item }">
-              {{ Number(item.totalNet).toFixed(2) }}€
-            </template>
-            <template #item.dueDate="{ item }">
-              {{ new Date(item.dueDate).toLocaleDateString('de-DE') }}
-            </template>
-            <template #item.actions="{ item }">
-              <v-btn size="small" variant="text" color="primary" icon="mdi-download" @click="downloadPdf(item.id)"></v-btn>
-            </template>
-          </v-data-table>
         </v-card>
       </v-col>
     </v-row>
@@ -152,6 +80,8 @@
         <div class="mt-4 text-h6 text-grey">Lade Kontodaten...</div>
       </v-col>
     </v-row>
+
+    <v-snackbar v-model="snackbar" color="success" timeout="3000">Feedback erfolgreich gesendet!</v-snackbar>
   </v-container>
 </template>
 
@@ -159,18 +89,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { articlesApi, cashRegisterApi, type Article } from '../api/cash-register'
 import { api } from '../api/axios'
-import { hoursApi } from '../api/hours'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-function isUuid(val: any): boolean { return typeof val === 'string' && UUID_RE.test(val) }
 
 const account = ref<any>(null)
 const articles = ref<Article[]>([])
 const invoices = ref<any[]>([])
-const currentYear = new Date().getFullYear()
-const hoursStats = ref({ confirmedHours: 0, totalHours: 0 })
-const requiredHours = ref(0)
 const selectedCategory = ref('Alle')
+
+const snackbar = ref(false)
 
 const categories = computed(() => {
   const cats = new Set(articles.value.map(a => a.category).filter(Boolean))
@@ -188,72 +113,23 @@ interface CartItem {
 }
 const cart = ref<CartItem[]>([])
 
-const filterMode = ref('ALL')
-function isSameMonth(d1: Date, d2: Date) { return d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear() }
-
-function getImageUrl(path: string | undefined) {
-  if (!path) return ''
-  if (path.startsWith('http')) return path
-  const baseURL = api.defaults.baseURL?.replace('/api/v1', '')
-  return `${baseURL}${path}`
-}
-
-const filteredTransactions = computed(() => {
-  const txs = account.value?.transactions || []
-  const now = new Date()
-  
-  return txs.filter((t: any) => {
-    if (filterMode.value === 'UNINVOICED') return !t.invoiceId
-    if (filterMode.value === 'CURRENT_MONTH') return isSameMonth(new Date(t.createdAt), now)
-    if (filterMode.value === 'LAST_MONTH') {
-      const last = new Date(now)
-      last.setMonth(now.getMonth() - 1)
-      return isSameMonth(new Date(t.createdAt), last)
-    }
-    return true
-  })
-})
-
-const headers: any = [
-  { title: 'Datum', key: 'createdAt' },
-  { title: 'Details', key: 'details' },
-  { title: 'Betrag', key: 'amount', align: 'end' },
-  { title: 'Gebucht von', key: 'createdBy' },
-]
-
-const invoiceHeaders: any = [
-  { title: 'Rechnungsnummer', key: 'invoiceNumber' },
-  { title: 'Netto', key: 'totalNet' },
-  { title: 'Fällig am', key: 'dueDate' },
-  { title: 'Status', key: 'status' },
-  { title: 'Aktion', key: 'actions', align: 'end' }
-]
-
 const cartTotal = computed(() => {
   return cart.value.reduce((acc, item) => acc + (Number(item.article.price) * item.quantity), 0)
 })
 
 async function load() {
   try {
-    const [acc, arts, invs, hData, qData] = await Promise.all([
+    const [acc, arts, invs] = await Promise.all([
       cashRegisterApi.getAccountMe(),
       articlesApi.getAll(),
-      cashRegisterApi.getMyInvoices(),
-      hoursApi.getMyEntries(currentYear),
-      hoursApi.getQuota(currentYear)
+      cashRegisterApi.getMyInvoices()
     ])
     account.value = acc
     articles.value = arts
     invoices.value = invs
-    hoursStats.value = hData.stats
-    requiredHours.value = (qData as any)?.requiredHours || 0
   } catch (e) {
     console.error('Failed to load dashboard data', e)
   }
-}
-
-function downloadPdf(id: string) {
-  cashRegisterApi.downloadInvoicePdf(id)
 }
 
 function addToCart(article: Article) {
@@ -277,11 +153,18 @@ async function checkout() {
       items: cart.value.map(c => ({ articleId: c.article.id, quantity: c.quantity }))
     })
     cart.value = []
-    await load() // Refresh balance and transaction log
+    await load() // Refresh balance
   } catch(e: any) {
     alert(e.response?.data?.message || 'Fehler bei der Buchung')
   }
   checkingOut.value = false
+}
+
+function getImageUrl(path: string | undefined) {
+  if (!path) return ''
+  if (path.startsWith('http')) return path
+  const baseURL = api.defaults.baseURL?.replace('/api/v1', '')
+  return `${baseURL}${path}`
 }
 
 onMounted(() => load())

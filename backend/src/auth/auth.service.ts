@@ -15,7 +15,11 @@ export class AuthService {
   ) {}
 
   async login(loginDto: LoginDto) {
-    const user = await this.usersService.findByUsername(loginDto.username);
+    const user = await this.prisma.user.findUnique({ 
+      where: { username: loginDto.username },
+      include: { member: { select: { firstName: true, lastName: true } } }
+    });
+
     if (!user || user.isActive === false) {
       throw new UnauthorizedException('Invalid credentials or account inactive');
     }
@@ -51,6 +55,8 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        firstName: user.member?.firstName,
+        lastName: user.member?.lastName,
         roles: user.roles,
         language: user.language,
         lastLoginAt: user.lastLoginAt // Return the PREVIOUS last login
@@ -62,7 +68,13 @@ export class AuthService {
     const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
     const rfidEntry = await this.prisma.rfidToken.findUnique({
       where: { tokenHash },
-      include: { user: true }
+      include: { 
+        user: { 
+          include: { 
+            member: { select: { firstName: true, lastName: true } } 
+          } 
+        } 
+      }
     });
 
     if (!rfidEntry || !rfidEntry.isActive || !rfidEntry.user.isActive) {
@@ -99,6 +111,8 @@ export class AuthService {
       user: {
         id: user.id,
         username: user.username,
+        firstName: (user as any).member?.firstName,
+        lastName: (user as any).member?.lastName,
         roles: user.roles,
         language: user.language,
         lastLoginAt: user.lastLoginAt

@@ -25,19 +25,19 @@ export class ArticlesController {
   }
 
   @Post()
-  @Roles(Role.VORSTAND, Role.MITARBEITER, Role.SCHATZMEISTER)
+  @Roles(Role.VORSTAND, Role.MITARBEITER)
   create(@Body() createArticleDto: CreateArticleDto) {
     return this.articlesService.create(createArticleDto);
   }
 
   @Put(':id')
-  @Roles(Role.VORSTAND, Role.MITARBEITER, Role.SCHATZMEISTER)
+  @Roles(Role.VORSTAND, Role.MITARBEITER)
   update(@Param('id') id: string, @Body() updateArticleDto: UpdateArticleDto) {
     return this.articlesService.update(id, updateArticleDto);
   }
 
   @Post(':id/image')
-  @Roles(Role.VORSTAND, Role.MITARBEITER, Role.SCHATZMEISTER)
+  @Roles(Role.VORSTAND, Role.MITARBEITER)
   @UseInterceptors(FileInterceptor('image', {
     storage: diskStorage({
       destination: './uploads/articles',
@@ -53,7 +53,7 @@ export class ArticlesController {
   }
 
   @Delete(':id')
-  @Roles(Role.VORSTAND, Role.MITARBEITER, Role.SCHATZMEISTER)
+  @Roles(Role.VORSTAND, Role.MITARBEITER)
   remove(@Param('id') id: string) {
     return this.articlesService.remove(id);
   }

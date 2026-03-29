@@ -2,36 +2,82 @@
   <v-container class="fill-height" fluid>
     <v-row align="center" justify="center">
       <v-col cols="12" sm="8" md="4">
-        <v-card class="elevation-12">
-          <v-toolbar color="primary">
-            <v-toolbar-title>{{ t('auth.login') }}</v-toolbar-title>
-          </v-toolbar>
-          <v-card-text>
-            <v-form @submit.prevent="handleLogin">
-              <v-alert v-if="errorMsg" type="error" class="mb-4" density="compact">{{ errorMsg }}</v-alert>
-              <v-text-field
-                v-model="username"
-                :label="t('auth.username', 'Benutzername')"
-                prepend-icon="mdi-account"
-                type="text"
-                required
-                :disabled="isLoading"
-              ></v-text-field>
-              <v-text-field
-                v-model="password"
-                :label="t('auth.password', 'Passwort')"
-                prepend-icon="mdi-lock"
-                type="password"
-                required
-                :disabled="isLoading"
-              ></v-text-field>
+        <v-card class="elevation-12 rounded-lg py-4">
+          <v-card-text class="text-center">
+            <v-fade-transition hide-on-leave>
+              <!-- RFID SCAN MODE (Default) -->
+              <div v-if="loginMode === 'rfid'" key="rfid" class="pa-4">
+                <v-icon size="80" color="primary" class="mb-6">mdi-contactless-payment</v-icon>
+                <h1 class="text-h5 font-weight-bold mb-2">{{ t('auth.scanTitle', 'Chip scannen') }}</h1>
+                <p class="text-body-1 text-grey-darken-1 mb-8">
+                  {{ t('auth.scanInstruction', 'Bitte halten Sie Ihren RFID-Chip an das Lesegerät, um sich anzumelden.') }}
+                </p>
+                
+                <v-alert v-if="errorMsg" type="error" variant="tonal" class="mb-6" density="compact">
+                  {{ errorMsg }}
+                </v-alert>
 
-              <div class="mt-4 text-center text-caption text-grey">
-                {{ t('auth.loginWithRfid', 'Oder RFID Token scannen...') }}
+                <v-divider class="mb-6"></v-divider>
+                
+                <v-btn
+                  variant="text"
+                  color="secondary"
+                  @click="loginMode = 'password'"
+                  prepend-icon="mdi-keyboard-outline"
+                >
+                  {{ t('auth.usePassword', 'Login mit Zugangsdaten') }}
+                </v-btn>
               </div>
-              <v-btn type="submit" color="primary" block class="mt-4" :loading="isLoading">{{ t('auth.login') }}</v-btn>
-            </v-form>
+
+              <!-- PASSWORD MODE -->
+              <div v-else key="password" class="pa-4 text-left">
+                <div class="d-flex align-center mb-6">
+                   <h1 class="text-h5 font-weight-bold">{{ t('auth.login') }}</h1>
+                   <v-spacer></v-spacer>
+                   <v-btn icon="mdi-close" variant="text" size="small" @click="loginMode = 'rfid'"></v-btn>
+                </div>
+
+                <v-form @submit.prevent="handleLogin">
+                  <v-alert v-if="errorMsg" type="error" class="mb-4" density="compact">{{ errorMsg }}</v-alert>
+                  <v-text-field
+                    v-model="username"
+                    :label="t('auth.username', 'Benutzername')"
+                    prepend-inner-icon="mdi-account"
+                    variant="outlined"
+                    required
+                    :disabled="isLoading"
+                  ></v-text-field>
+                  <v-text-field
+                    v-model="password"
+                    :label="t('auth.password', 'Passwort')"
+                    prepend-inner-icon="mdi-lock"
+                    type="password"
+                    variant="outlined"
+                    required
+                    :disabled="isLoading"
+                  ></v-text-field>
+
+                  <v-btn type="submit" color="primary" block size="large" class="mt-4" :loading="isLoading">
+                    {{ t('auth.login') }}
+                  </v-btn>
+                </v-form>
+
+                <div class="mt-6 text-center">
+                  <v-btn variant="text" color="secondary" size="small" @click="loginMode = 'rfid'" prepend-icon="mdi-contactless-payment">
+                    {{ t('auth.backToScan', 'Zurück zum RFID-Scan') }}
+                  </v-btn>
+                </div>
+              </div>
+            </v-fade-transition>
           </v-card-text>
+          
+          <v-progress-linear
+            v-if="isLoading"
+            indeterminate
+            absolute
+            bottom
+            color="primary"
+          ></v-progress-linear>
         </v-card>
       </v-col>
     </v-row>
@@ -50,6 +96,7 @@ const { t } = useI18n()
 
 const username = ref('')
 const password = ref('')
+const loginMode = ref<'rfid' | 'password'>('rfid')
 const isLoading = ref(false)
 const errorMsg = ref('')
 
@@ -69,24 +116,56 @@ async function handleLogin() {
   }
 }
 
-// RFID EMULATION
+// RFID SCANNER HANDLING
 const rfidBuffer = ref('')
 let rfidTimeout: ReturnType<typeof setTimeout> | null = null
+let lastKeyTime = 0
 
-function handleKeypress(e: KeyboardEvent) {
+function handleKeyDown(e: KeyboardEvent) {
+  const currentTime = Date.now()
+  const diff = currentTime - lastKeyTime
+  lastKeyTime = currentTime
+
   if (rfidTimeout) clearTimeout(rfidTimeout)
-  
-  if (e.key === 'Enter' && rfidBuffer.value.length > 5) {
-     const token = rfidBuffer.value
-     rfidBuffer.value = ''
-     submitRfid(token)
+
+  // Detect fast typing (RFID scanner/barcode reader speed is typically < 20ms)
+  const isFast = diff < 50 
+
+  if (e.key === 'Enter') {
+    if (rfidBuffer.value.length > 5) {
+      // It's a valid scan sequence
+      e.preventDefault()
+      e.stopPropagation()
+      const token = rfidBuffer.value
+      rfidBuffer.value = ''
+      
+      // Clear fields to remove any junk that might have leaked in (like the first character)
+      username.value = ''
+      password.value = ''
+      
+      submitRfid(token)
+    } else {
+      // Normal Enter key or too short to be an RFID
+      rfidBuffer.value = ''
+    }
   } else if (e.key.length === 1) {
-     rfidBuffer.value += e.key
+    // If subsequent characters are coming in fast, we treat it as a scanner
+    // and prevent the character from entering the focused input field.
+    if (isFast && rfidBuffer.value.length > 0) {
+      e.preventDefault()
+      rfidBuffer.value += e.key
+    } else if (!isFast) {
+      // If it's slow, we reset the buffer and treat it as the start of a possible new scan
+      rfidBuffer.value = e.key
+    } else {
+      // It's fast but the first character, we let it through to the field but buffer it
+      rfidBuffer.value += e.key
+    }
   }
-  
+
   rfidTimeout = setTimeout(() => {
-     rfidBuffer.value = '' 
-  }, 50)
+    rfidBuffer.value = ''
+  }, 100)
 }
 
 async function submitRfid(token: string) {
@@ -101,6 +180,6 @@ async function submitRfid(token: string) {
   isLoading.value = false
 }
 
-onMounted(() => window.addEventListener('keypress', handleKeypress))
-onUnmounted(() => window.removeEventListener('keypress', handleKeypress))
+onMounted(() => window.addEventListener('keydown', handleKeyDown, true))
+onUnmounted(() => window.removeEventListener('keydown', handleKeyDown, true))
 </script>

@@ -71,18 +71,29 @@ export class MembersService {
           ...restMemberData,
           email: emailNormalized,
           birthDate: memberData.birthDate ? new Date(memberData.birthDate) : undefined,
-        }
+        },
+        include: { user: true }
       });
 
+      const userUpdate: any = {};
       if (roles && roles.length > 0) {
         // Protect: Prevent removing VORSTAND from yourself
         if (currentUserId && member.userId === currentUserId && !roles.includes('VORSTAND' as any)) {
           throw new ConflictException('Du kannst dir selbst nicht die Vorstand-Berechtigung entziehen.');
         }
-        
+        userUpdate.roles = roles;
+      }
+
+      if (memberData.username && memberData.username !== member.user.username) {
+        const existing = await tx.user.findUnique({ where: { username: memberData.username } });
+        if (existing) throw new ConflictException('Dieser Benutzername ist bereits vergeben.');
+        userUpdate.username = memberData.username;
+      }
+
+      if (Object.keys(userUpdate).length > 0) {
         await tx.user.update({
           where: { id: member.userId },
-          data: { roles }
+          data: userUpdate
         });
       }
 
@@ -104,11 +115,21 @@ export class MembersService {
 
     const hash = crypto.createHash('sha256').update(token).digest('hex');
     
-    // Clear old tokens for this user
-    await this.prisma.rfidToken.deleteMany({ where: { userId: member.userId } });
-    
-    return this.prisma.rfidToken.create({
-      data: { userId: member.userId, tokenHash: hash }
+    return this.prisma.$transaction(async (tx) => {
+      // Clear old tokens for this user
+      await tx.rfidToken.deleteMany({ where: { userId: member.userId } });
+      
+      try {
+        return await tx.rfidToken.create({
+          data: { userId: member.userId, tokenHash: hash }
+        });
+      } catch (e: any) {
+        // Prisma error code for unique constraint violation
+        if (e.code === 'P2002') {
+          throw new ConflictException('Dieser RFID Token ist bereits einem anderen Mitglied zugeordnet.');
+        }
+        throw e;
+      }
     });
   }
 
@@ -125,5 +146,160 @@ export class MembersService {
     });
     
     return { message: `Passwort für ${member.firstName} ${member.lastName} wurde auf 'start123' zurückgesetzt.` };
+  }
+  async identifyByRfid(token: string) {
+    const hash = crypto.createHash('sha256').update(token).digest('hex');
+    const rfidToken = await this.prisma.rfidToken.findUnique({
+      where: { tokenHash: hash },
+      include: { 
+        user: { 
+          include: { 
+            member: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                memberNumber: true
+              }
+            } 
+          } 
+        } 
+      }
+    });
+
+    if (!rfidToken || !rfidToken.user?.member) {
+      throw new NotFoundException('Dieser RFID Token ist keinem Mitglied zugeordnet.');
+    }
+    
+    return rfidToken.user.member;
+  }
+
+  async getInboxStatus() {
+    const [pendingChanges, openFeedback] = await Promise.all([
+      this.prisma.dataChangeRequest.count({ where: { status: 'PENDING' } }),
+      this.prisma.feedback.count({ where: { status: 'OPEN' } })
+    ]);
+
+    return {
+      pendingChanges,
+      openFeedback,
+      total: pendingChanges + openFeedback
+    };
+  }
+
+  async getMyInboxStatus(userId: string) {
+    const member = await this.prisma.member.findUnique({ where: { userId } });
+    if (!member) return { openFeedback: 0, total: 0 };
+
+    const openFeedback = await this.prisma.feedback.count({ 
+      where: { 
+        memberId: member.id,
+        status: 'ANSWERED'
+      } 
+    });
+
+    return {
+      openFeedback,
+      total: openFeedback
+    };
+  }
+
+  async createChangeRequest(userId: string, data: { field: string, oldValue: string, newValue: string, reason?: string }) {
+    const member = await this.prisma.member.findUnique({ where: { userId } });
+    if (!member) throw new NotFoundException('Mitglied nicht gefunden.');
+
+    return this.prisma.dataChangeRequest.create({
+      data: {
+        memberId: member.id,
+        ...data,
+        status: 'PENDING'
+      }
+    });
+  }
+
+  async findMyChangeRequests(userId: string) {
+    const member = await this.prisma.member.findUnique({ where: { userId } });
+    if (!member) return [];
+    return this.prisma.dataChangeRequest.findMany({
+      where: { memberId: member.id },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async findAllChangeRequests() {
+    return this.prisma.dataChangeRequest.findMany({
+      include: { member: true },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async updateChangeRequestStatus(id: string, status: 'APPROVED' | 'REJECTED') {
+    const request = await this.prisma.dataChangeRequest.findUnique({
+      where: { id },
+      include: { member: true }
+    });
+    if (!request) throw new NotFoundException('Antrag nicht gefunden.');
+
+    return this.prisma.$transaction(async (tx) => {
+      const updatedRequest = await tx.dataChangeRequest.update({
+        where: { id },
+        data: { status }
+      });
+
+      if (status === 'APPROVED') {
+        await tx.member.update({
+          where: { id: request.memberId },
+          data: { [request.field]: request.newValue }
+        });
+      }
+
+      return updatedRequest;
+    });
+  }
+
+  async findAllFeedback() {
+    return this.prisma.feedback.findMany({
+      include: {
+        member: true,
+        replies: { orderBy: { createdAt: 'asc' } }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+  }
+
+  async addFeedbackReply(feedbackId: string, authorId: string, data: { message: string, isInternal: boolean }) {
+    const feedback = await this.prisma.feedback.findUnique({ where: { id: feedbackId } });
+    if (!feedback) throw new NotFoundException('Feedback nicht gefunden.');
+
+    return this.prisma.$transaction(async (tx) => {
+      const reply = await tx.feedbackReply.create({
+        data: {
+          feedbackId,
+          authorId,
+          message: data.message,
+          isInternal: data.isInternal
+        }
+      });
+
+      // Update feedback status to ANSWERED if it's not internal and wasn't already closed
+      if (!data.isInternal && feedback.status !== 'CLOSED' as any) {
+        await tx.feedback.update({
+          where: { id: feedbackId },
+          data: { status: 'ANSWERED' as any }
+        });
+      }
+
+      return reply;
+    });
+  }
+
+  async updateFeedbackStatus(id: string, status: 'OPEN' | 'ANSWERED' | 'CLOSED') {
+    const feedback = await this.prisma.feedback.findUnique({ where: { id } });
+    if (!feedback) throw new NotFoundException('Feedback nicht gefunden.');
+
+    return this.prisma.feedback.update({
+      where: { id },
+      data: { status }
+    });
   }
 }

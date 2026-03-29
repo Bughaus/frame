@@ -78,7 +78,7 @@ export class CashRegisterService {
     return this.prisma.memberAccount.findUnique({
       where: { memberId: member.id },
       include: {
-        member: true,
+        member: { include: { user: { select: { id: true, username: true } } } },
         transactions: { include: { items: { include: { article: true } } }, orderBy: { createdAt: 'desc' } }
       }
     });
@@ -249,8 +249,22 @@ export class CashRegisterService {
 
   // -- GUEST SLOTS & RECEIPT --
 
-  getGuestSlots() {
-    return this.prisma.guestSlot.findMany({ orderBy: { slotNumber: 'asc' } });
+  async getGuestSlots() {
+    const slots = await this.prisma.guestSlot.findMany({ 
+      orderBy: { slotNumber: 'asc' },
+      include: { transactions: { where: { settledAt: null } } }
+    });
+    return slots.map(s => ({
+      ...s,
+      balance: s.transactions.reduce((acc, t) => acc + Number(t.totalAmount), 0)
+    }));
+  }
+
+  async updateGuestSlot(id: string, data: { displayName?: string }) {
+    return this.prisma.guestSlot.update({
+      where: { id },
+      data
+    });
   }
 
   getEigenbelege() {
@@ -330,7 +344,21 @@ export class CashRegisterService {
     return transaction;
   }
 
-  async clearGuestSlot(slotId: string, paymentMethod: 'CASH' | 'PAYPAL', paypalReference?: string, userId: string = 'System') {
+  async clearGuestSlot(slotId: string, paymentMethod: 'CASH' | 'PAYPAL', paypalReference?: string, userId: string = 'System', tipAmount?: number) {
+    if (tipAmount && tipAmount > 0) {
+      await this.prisma.guestTransaction.create({
+        data: {
+          slotId,
+          responsibleMemberId: userId,
+          items: [{ name: 'Trinkgeld', qty: 1, unitPrice: tipAmount }],
+          totalAmount: tipAmount,
+          paymentMethod: paymentMethod as any,
+          paypalReference: paymentMethod === 'PAYPAL' ? paypalReference : null,
+          settledAt: new Date()
+        }
+      });
+    }
+
     await this.prisma.guestTransaction.updateMany({
         where: { slotId, settledAt: null, paymentMethod: 'PENDING' as any },
         data: { 
@@ -345,6 +373,26 @@ export class CashRegisterService {
     return this.prisma.guestSlot.update({
         where: { id: slotId },
         data: { isActive: true, displayName: `Gast ${slot?.slotNumber}` }
+    });
+  }
+
+  async deleteTransaction(id: string, userId: string) {
+    return this.prisma.$transaction(async (tx) => {
+      const transaction = await tx.transaction.findUnique({
+        where: { id },
+        include: { account: true }
+      });
+      if (!transaction) throw new NotFoundException('Transaction not found');
+      if (transaction.invoiceId) throw new BadRequestException('Bereits abgerechnete Buchungen können nicht gelöscht werden.');
+      if (transaction.type !== 'DEBIT') throw new BadRequestException('Nur Belastungen können gelöscht werden.');
+
+      const refund = Math.abs(Number(transaction.amount));
+      await tx.memberAccount.update({
+        where: { id: transaction.accountId },
+        data: { balance: { increment: refund } }
+      });
+
+      return tx.transaction.delete({ where: { id } });
     });
   }
 

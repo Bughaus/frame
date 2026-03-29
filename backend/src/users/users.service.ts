@@ -26,5 +26,15 @@ export class UsersService {
     await this.prisma.user.update({ where: { id: userId }, data: { passwordHash: hash } });
     return { success: true };
   }
+
+  async updateUsername(id: string, username: string) {
+    const existing = await this.prisma.user.findUnique({ where: { username } });
+    if (existing && existing.id !== id) throw new BadRequestException('Benutzername bereits vergeben.');
+    
+    return this.prisma.user.update({
+      where: { id },
+      data: { username }
+    });
+  }
 }
 

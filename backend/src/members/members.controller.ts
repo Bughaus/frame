@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Request, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Put, Delete, UseGuards, Request, Res, Patch } from '@nestjs/common';
 import type { Response } from 'express';
 import { MembersService } from './members.service';
 import { CreateMemberDto } from './dto/create-member.dto';
@@ -24,15 +24,15 @@ export class MembersController {
     const members = await this.membersService.findAll();
     const roles = req.user?.roles || [];
     
-    // Privacy Redaction: Only VORSTAND and SCHATZMEISTER see full details
-    if (!roles.includes(Role.VORSTAND) && !roles.includes(Role.SCHATZMEISTER)) {
+    // Privacy Redaction: Only VORSTAND and MITARBEITER see full details
+    if (!roles.includes(Role.VORSTAND) && !roles.includes(Role.MITARBEITER)) {
       return members.map(m => this.redactMember(m));
     }
     return members;
   }
 
   @Get('export')
-  @Roles(Role.VORSTAND, Role.SCHATZMEISTER) // MITARBEITER cannot export sensitive data
+  @Roles(Role.VORSTAND) // MITARBEITER cannot export sensitive data
   async exportCsv(@Res() res: Response) {
     const members = await this.membersService.findAll();
     const BOM = '\uFEFF';
@@ -64,25 +64,58 @@ export class MembersController {
     res.send(csv);
   }
 
+  // --- Administrative & Special Routes (Must be before wildcard :id routes) ---
+
+  @Get('inbox-status/count')
+  @Roles(Role.VORSTAND)
+  async getInboxStatus() {
+    return this.membersService.getInboxStatus();
+  }
+
+  @Get('me/change-requests')
+  async getMyChangeRequests(@Request() req: any) {
+    return this.membersService.findMyChangeRequests(req.user.userId);
+  }
+
+  @Get('change-requests')
+  @Roles(Role.VORSTAND)
+  async findAllChangeRequests() {
+    return this.membersService.findAllChangeRequests();
+  }
+
+  @Get('feedback')
+  @Roles(Role.VORSTAND)
+  async findAllFeedback() {
+    return this.membersService.findAllFeedback();
+  }
+
+  @Post('identify-rfid')
+  @Roles(Role.VORSTAND, Role.MITARBEITER)
+  identifyByRfid(@Body() body: { token: string }) {
+    return this.membersService.identifyByRfid(body.token);
+  }
+
+  // --- Member Detail & Wildcard Routes ---
+
   @Get(':id')
   async findOne(@Param('id') id: string, @Request() req: any) {
     const member = await this.membersService.findOne(id);
     const roles = req.user?.roles || [];
     
-    if (!roles.includes(Role.VORSTAND) && !roles.includes(Role.SCHATZMEISTER)) {
+    if (!roles.includes(Role.VORSTAND) && !roles.includes(Role.MITARBEITER)) {
       return this.redactMember(member);
     }
     return member;
   }
 
   @Put(':id')
-  @Roles(Role.VORSTAND) // Only VORSTAND can edit existing members
+  @Roles(Role.VORSTAND, Role.MITARBEITER) // Allow MITARBEITER to edit existing members
   update(@Param('id') id: string, @Body() updateMemberDto: UpdateMemberDto, @Request() req: any) {
     return this.membersService.update(id, updateMemberDto, req.user.userId);
   }
 
   @Delete(':id')
-  @Roles(Role.VORSTAND) // Only VORSTAND can remove members
+  @Roles(Role.VORSTAND, Role.MITARBEITER) // Allow MITARBEITER to remove/deactivate members
   remove(@Param('id') id: string) {
     return this.membersService.remove(id);
   }
@@ -97,6 +130,34 @@ export class MembersController {
   @Roles(Role.VORSTAND, Role.MITARBEITER)
   resetPassword(@Param('id') id: string) {
     return this.membersService.resetPassword(id);
+  }
+
+  @Patch('change-requests/:id')
+  @Roles(Role.VORSTAND)
+  async updateChangeRequestStatus(@Param('id') id: string, @Body() body: { status: 'APPROVED' | 'REJECTED' }) {
+    return this.membersService.updateChangeRequestStatus(id, body.status);
+  }
+
+  @Post('me/change-requests')
+  async createMyChangeRequest(@Request() req: any, @Body() data: any) {
+    return this.membersService.createChangeRequest(req.user.userId, data);
+  }
+
+  @Get('me/inbox-status')
+  async getMyInboxStatus(@Request() req: any) {
+    return this.membersService.getMyInboxStatus(req.user.userId);
+  }
+
+  @Post('feedback/:id/reply')
+  @Roles(Role.VORSTAND)
+  async addFeedbackReply(@Param('id') id: string, @Request() req: any, @Body() body: { message: string, isInternal: boolean }) {
+    return this.membersService.addFeedbackReply(id, req.user.username, body);
+  }
+
+  @Patch('feedback/:id/status')
+  @Roles(Role.VORSTAND)
+  async updateFeedbackStatus(@Param('id') id: string, @Body() body: { status: 'OPEN' | 'ANSWERED' | 'CLOSED' }) {
+    return this.membersService.updateFeedbackStatus(id, body.status);
   }
 
   private redactMember(member: any) {

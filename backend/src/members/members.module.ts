@@ -3,9 +3,11 @@ import { MembersController } from './members.controller';
 import { MembersService } from './members.service';
 import { DataChangeController } from './data-change.controller';
 import { DataChangeService } from './data-change.service';
+import { FeedbackController } from './feedback.controller';
+import { FeedbackService } from './feedback.service';
 
 @Module({
-  controllers: [MembersController, DataChangeController],
-  providers: [MembersService, DataChangeService]
+  controllers: [MembersController, DataChangeController, FeedbackController],
+  providers: [MembersService, DataChangeService, FeedbackService]
 })
 export class MembersModule {}

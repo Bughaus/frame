@@ -2,8 +2,24 @@
   "nav": {
     "dashboard": "Dashboard"
   },
+  "members": {
+    "identify": "Identify Hardware",
+    "scanNow": "Scan chip now...",
+    "scanHint": "Hold an RFID chip near the reader to identify the owner.",
+    "editIdentified": "Edit Identified Member",
+    "notFound": "This RFID token is not assigned to any member."
+  },
   "auth": {
     "login": "Login",
-    "logout": "Logout"
+    "logout": "Logout",
+    "username": "Username",
+    "password": "Password",
+    "loginWithRfid": "Or scan RFID Token...",
+    "invalidLogin": "Invalid credentials.",
+    "invalidRfid": "Invalid RFID Token.",
+    "scanTitle": "Scan RFID Chip",
+    "scanInstruction": "Please hold your RFID chip near the reader to log in.",
+    "usePassword": "Login with credentials",
+    "backToScan": "Back to RFID scan"
   }
 }

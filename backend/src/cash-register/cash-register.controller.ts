@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Request, UseGuards, Res, Query, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Request, UseGuards, Res, Query, UseInterceptors, UploadedFile, Delete } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { diskStorage } from 'multer';
 import type { Response } from 'express';
@@ -16,55 +16,61 @@ export class CashRegisterController {
   constructor(private readonly cashRegisterService: CashRegisterService) { }
 
   @Get('accounts')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   findAllAccounts() {
     return this.cashRegisterService.getAccounts();
   }
 
   @Get('accounts/me')
-  @Roles(Role.MEMBER, Role.SCHATZMEISTER, (Role as any).MITARBEITER, Role.VORSTAND)
+  @Roles(Role.MEMBER, (Role as any).MITARBEITER, Role.VORSTAND)
   findMyAccount(@Request() req: any) {
     return this.cashRegisterService.getAccountByUserId(req.user.userId);
   }
 
   @Get('accounts/:id')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   findOneAccount(@Param('id') id: string) {
     return this.cashRegisterService.getAccount(id);
   }
 
   @Post('transactions')
-  @Roles(Role.MEMBER, Role.SCHATZMEISTER, (Role as any).MITARBEITER, Role.VORSTAND)
+  @Roles(Role.MEMBER, Role.VORSTAND, Role.MITARBEITER)
   createTransaction(@Body() createTransactionDto: CreateTransactionDto, @Request() req: any) {
     return this.cashRegisterService.createTransaction(createTransactionDto, req.user.username);
   }
 
+  @Delete('transactions/:id')
+  @Roles(Role.MEMBER, Role.VORSTAND, Role.MITARBEITER)
+  deleteTransaction(@Param('id') id: string, @Request() req: any) {
+    return this.cashRegisterService.deleteTransaction(id, req.user.username);
+  }
+
   @Post('invoices')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   createInvoices(@Body() body: { accountIds: string[], dueDate: string }, @Request() req: any) {
     return this.cashRegisterService.generateInvoices(body.accountIds, new Date(body.dueDate), req.user.username);
   }
 
   @Get('invoices/me')
-  @Roles(Role.MEMBER, Role.SCHATZMEISTER, (Role as any).MITARBEITER, Role.VORSTAND)
+  @Roles(Role.MEMBER, (Role as any).MITARBEITER, Role.VORSTAND)
   getMyInvoices(@Request() req: any) {
     return this.cashRegisterService.getInvoicesByUserId(req.user.userId);
   }
 
   @Get('invoices')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   getInvoices() {
     return this.cashRegisterService.getInvoices();
   }
 
   @Patch('invoices/:id/status')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   updateInvoiceStatus(@Param('id') id: string, @Body() body: { status: 'PAID' | 'CANCELLED' }) {
     return this.cashRegisterService.updateInvoiceStatus(id, body.status);
   }
 
   @Get('invoices/:id/pdf')
-  @Roles(Role.MEMBER, Role.SCHATZMEISTER, (Role as any).MITARBEITER, Role.VORSTAND)
+  @Roles(Role.MEMBER, (Role as any).MITARBEITER, Role.VORSTAND)
   async getInvoicePdf(@Param('id') id: string, @Res() res: Response) {
     const buffer = await this.cashRegisterService.generateInvoicePdf(id);
     res.set({
@@ -76,7 +82,7 @@ export class CashRegisterController {
   }
 
   @Get('sepa-export')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   async getSepaExport(@Query('invoiceIds') invoiceIds: string, @Res() res: Response) {
     const ids = invoiceIds.split(',');
     const xml = await this.cashRegisterService.generateSepaXml(ids);
@@ -88,13 +94,19 @@ export class CashRegisterController {
   }
 
   @Get('guest-slots')
-  @Roles(Role.SCHATZMEISTER, (Role as any).MITARBEITER, Role.VORSTAND)
+  @Roles(Role.MITARBEITER, Role.VORSTAND)
   getGuestSlots() {
     return this.cashRegisterService.getGuestSlots();
   }
 
+  @Patch('guest-slots/:id')
+  @Roles((Role as any).MITARBEITER, Role.VORSTAND)
+  updateGuestSlot(@Param('id') id: string, @Body() body: { displayName: string }) {
+    return this.cashRegisterService.updateGuestSlot(id, body);
+  }
+
   @Get('global-transactions')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   getGlobalTransactions() {
     return this.cashRegisterService.getGlobalTransactions();
   }
@@ -105,19 +117,19 @@ export class CashRegisterController {
   }
 
   @Post('guest-slots/:id/clear')
-  @Roles(Role.SCHATZMEISTER, (Role as any).MITARBEITER, Role.VORSTAND)
-  clearGuestSlot(@Param('id') id: string, @Body() body: { paymentMethod: 'CASH' | 'PAYPAL', paypalReference?: string }, @Request() req: any) {
-    return this.cashRegisterService.clearGuestSlot(id, body.paymentMethod, body.paypalReference, req.user.username);
+  @Roles((Role as any).MITARBEITER, Role.VORSTAND)
+  clearGuestSlot(@Param('id') id: string, @Body() body: { paymentMethod: 'CASH' | 'PAYPAL', paypalReference?: string, tipAmount?: number }, @Request() req: any) {
+    return this.cashRegisterService.clearGuestSlot(id, body.paymentMethod, body.paypalReference, req.user.username, body.tipAmount);
   }
 
   @Get('eigenbelege')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   getEigenbelege() {
     return this.cashRegisterService.getEigenbelege();
   }
 
   @Post('eigenbelege')
-  @Roles(Role.SCHATZMEISTER, Role.VORSTAND)
+  @Roles(Role.VORSTAND)
   @UseInterceptors(FileInterceptor('file', {
     storage: diskStorage({
       destination: './uploads/receipts',

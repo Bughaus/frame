@@ -1,14 +1,15 @@
 <template>
   <v-container fluid>
-    <v-row>
-      <v-col class="d-flex justify-space-between align-center">
-        <h1 class="text-h4">Mitgliederverwaltung</h1>
-        <div>
-          <v-btn color="secondary" variant="tonal" prepend-icon="mdi-download" class="mr-2" @click="exportCsv">Export CSV</v-btn>
-          <v-btn color="primary" prepend-icon="mdi-account-plus" @click="openDialog()">Neues Mitglied</v-btn>
-        </div>
-      </v-col>
-    </v-row>
+    <div class="d-flex align-center mb-6">
+      <v-icon size="x-large" color="primary" class="mr-3">mdi-account-group</v-icon>
+      <h1 class="text-h3 font-weight-bold">Mitglieder</h1>
+      <v-spacer></v-spacer>
+      <div>
+        <v-btn color="secondary" variant="tonal" prepend-icon="mdi-contactless-payment" class="mr-2" @click="openIdentifyDialog">Identifizieren</v-btn>
+        <v-btn color="secondary" variant="tonal" prepend-icon="mdi-download" class="mr-2" @click="exportCsv">Export CSV</v-btn>
+        <v-btn color="primary" prepend-icon="mdi-account-plus" @click="openDialog()">Neues Mitglied</v-btn>
+      </div>
+    </div>
 
     <v-row>
       <v-col>
@@ -39,7 +40,7 @@
                   v-for="role in (item.user?.roles || [])" 
                   :key="role" 
                   size="x-small" 
-                  :color="role === 'VORSTAND' ? 'primary' : role === 'MITARBEITER' ? 'warning' : role === 'SCHATZMEISTER' ? 'info' : 'grey'"
+                  :color="role === 'VORSTAND' ? 'primary' : role === 'MITARBEITER' ? 'warning' : 'grey'"
                   class="mr-1 mb-1"
                 >
                   {{ role }}
@@ -55,7 +56,7 @@
       </v-col>
     </v-row>
 
-    <v-dialog v-model="dialog" max-width="600px">
+    <v-dialog v-model="dialog" max-width="900px">
       <v-card>
         <v-card-title class="bg-primary text-white pb-3 pt-4">
           <span class="text-h5">{{ isEditing ? 'Mitglied bearbeiten' : 'Neues Mitglied' }}</span>
@@ -67,38 +68,37 @@
           </v-alert>
           <v-container>
             <v-row>
-              <v-col cols="12" sm="6">
-                <v-text-field v-model="editedItem.firstName" label="Vorname" variant="outlined" density="compact" required></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field v-model="editedItem.lastName" label="Nachname" variant="outlined" density="compact" required></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field v-model="editedItem.memberNumber" label="Mitglieds-Nr." variant="outlined" density="compact" required></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field v-model="editedItem.email" label="E-Mail" type="email" variant="outlined" density="compact" required></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field v-model="editedItem.phone" label="Telefon" variant="outlined" density="compact"></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field v-model="editedItem.street" label="Straße + Nr." variant="outlined" density="compact"></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="4">
-                <v-text-field v-model="editedItem.postalCode" label="PLZ" variant="outlined" density="compact"></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="4">
-                <v-text-field v-model="editedItem.city" label="Ort" variant="outlined" density="compact"></v-text-field>
-              </v-col>
-              <v-col cols="12" sm="4">
+              <!-- Group 1: Stammdaten -->
+              <v-col cols="12" md="4">
+                <div class="text-subtitle-2 mb-2 text-primary font-weight-bold">Stammdaten</div>
+                <v-text-field v-model="editedItem.firstName" label="Vorname" variant="outlined" density="compact" required class="mb-2"></v-text-field>
+                <v-text-field v-model="editedItem.lastName" label="Nachname" variant="outlined" density="compact" required class="mb-2"></v-text-field>
+                <v-text-field v-model="editedItem.memberNumber" label="Mitglieds-Nr." variant="outlined" density="compact" required class="mb-2"></v-text-field>
                 <v-select v-model="editedItem.status" :items="['ACTIVE', 'INACTIVE', 'PENDING']" label="Status" variant="outlined" density="compact"></v-select>
               </v-col>
-              <v-col cols="12" sm="6">
-                <v-text-field v-model="editedItem.birthDate" label="Geburtsdatum" type="date" variant="outlined" density="compact"></v-text-field>
+
+              <!-- Group 2: Kontakt & System -->
+              <v-col cols="12" md="4">
+                <div class="text-subtitle-2 mb-2 text-primary font-weight-bold">Kontakt & System</div>
+                <v-text-field v-model="editedItem.email" label="E-Mail" type="email" variant="outlined" density="compact" required class="mb-2"></v-text-field>
+                <v-text-field v-model="editedItem.phone" label="Telefon" variant="outlined" density="compact" class="mb-2"></v-text-field>
+                <v-text-field v-model="editedItem.birthDate" label="Geburtsdatum" type="date" variant="outlined" density="compact" class="mb-2"></v-text-field>
+                <v-text-field v-model="editedItem.username" label="Login-Name (Benutzername)" variant="outlined" density="compact" hint="Name für den Login"></v-text-field>
               </v-col>
-              <v-col cols="12" v-if="isEditing">
-                <v-select v-model="editedItem.roles" :items="['MEMBER', 'MITARBEITER', 'SCHATZMEISTER', 'VORSTAND']" label="App Berechtigungen (Rollen)" multiple chips variant="outlined" density="compact" hint="Bestimmt, welche Bereiche die Person in der App sehen kann (z.B. Kasse, Schatzmeister)." persistent-hint></v-select>
+
+              <!-- Group 3: Anschrift -->
+              <v-col cols="12" md="4">
+                <div class="text-subtitle-2 mb-2 text-primary font-weight-bold">Anschrift</div>
+                <v-text-field v-model="editedItem.street" label="Straße + Nr." variant="outlined" density="compact" class="mb-2"></v-text-field>
+                <v-text-field v-model="editedItem.postalCode" label="PLZ" variant="outlined" density="compact" class="mb-2"></v-text-field>
+                <v-text-field v-model="editedItem.city" label="Ort" variant="outlined" density="compact"></v-text-field>
+              </v-col>
+
+              <!-- Group 4: App-Berechtigungen -->
+              <v-col cols="12">
+                <v-divider class="my-2"></v-divider>
+                <div class="text-subtitle-2 mb-2 text-primary font-weight-bold">App Berechtigungen (Rollen)</div>
+                <v-select v-model="editedItem.roles" :items="['MEMBER', 'MITARBEITER', 'VORSTAND', 'TREASURER']" label="Rollen" multiple chips variant="outlined" density="compact" hint="Bestimmt, welche Bereiche die Person sehen kann." persistent-hint></v-select>
               </v-col>
             </v-row>
             <v-row v-if="isEditing">
@@ -108,6 +108,7 @@
                   v-model="rfidInput" 
                   label="RFID-Code eingeben oder scannen" 
                   variant="outlined" 
+                  type="password"
                   append-inner-icon="mdi-contactless-payment"
                   hint="Code eingeben und 'Registrieren' klicken, oder RFID-Chip scannen."
                   persistent-hint
@@ -125,13 +126,45 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+    
+    <!-- Identify RFID Dialog -->
+    <v-dialog v-model="identifyDialog" max-width="450px" persistent>
+      <v-card>
+        <v-card-title class="bg-primary text-white pt-4 pb-3">{{ t('members.identify') }}</v-card-title>
+        <v-card-text class="pt-6 pb-6 text-center">
+          <div v-if="!identifiedMember && !identifyError">
+            <v-icon size="64" color="primary" class="mb-4">mdi-contactless-payment</v-icon>
+            <div class="text-h6 mb-2">{{ t('members.scanNow') }}</div>
+            <div class="text-body-2 text-grey">{{ t('members.scanHint') }}</div>
+          </div>
+          
+          <v-alert v-if="identifyError" type="error" variant="tonal" class="mb-4">{{ identifyError }}</v-alert>
+          
+          <div v-if="identifiedMember" class="text-center">
+            <v-icon size="64" color="success" class="mb-4">mdi-account-check</v-icon>
+            <div class="text-h6">{{ identifiedMember.firstName }} {{ identifiedMember.lastName }}</div>
+            <div class="text-body-1 text-grey mb-4">Mitglieds-Nr: {{ identifiedMember.memberNumber }}</div>
+            <v-btn color="primary" block @click="editIdentifiedMember">{{ t('members.editIdentified') }}</v-btn>
+          </div>
+          
+          <v-progress-linear v-if="identifying" indeterminate color="primary" class="mt-4"></v-progress-linear>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="closeIdentifyDialog">{{ t('auth.logout') === 'Abmelden' ? 'Schließen' : 'Close' }}</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { membersApi, type Member } from '../api/members'
 import { api } from '../api/axios'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const headers: any = [
   { title: 'Mitglieds-Nr.', key: 'memberNumber' },
@@ -187,7 +220,8 @@ function openDialog(member?: any) {
     editedItem.value = { 
       ...member, 
       birthDate: member.birthDate ? String(member.birthDate).split('T')[0] : '',
-      roles: member.user?.roles || ['MEMBER']
+      roles: member.user?.roles || ['MEMBER'],
+      username: member.user?.username || ''
     }
   } else {
     isEditing.value = false
@@ -272,7 +306,89 @@ async function exportCsv() {
   }
 }
 
+
+// RFID Identification logic
+const identifyDialog = ref(false)
+const identifying = ref(false)
+const identifiedMember = ref<any>(null)
+const identifyError = ref('')
+const rfidBuffer = ref('')
+let lastKeyTime = 0
+let rfidTimeout: any = null
+
+function openIdentifyDialog() {
+  identifyDialog.value = true
+  identifiedMember.value = null
+  identifyError.value = ''
+  window.addEventListener('keydown', handleGlobalKeydown, true)
+}
+
+function closeIdentifyDialog() {
+  identifyDialog.value = false
+  window.removeEventListener('keydown', handleGlobalKeydown, true)
+}
+
+function handleGlobalKeydown(e: KeyboardEvent) {
+  if (!identifyDialog.value) return
+  
+  const currentTime = Date.now()
+  const diff = currentTime - lastKeyTime
+  lastKeyTime = currentTime
+
+  if (rfidTimeout) clearTimeout(rfidTimeout)
+
+  const isFast = diff < 50 
+
+  if (e.key === 'Enter') {
+    if (rfidBuffer.value.length > 5) {
+      e.preventDefault()
+      e.stopPropagation()
+      const token = rfidBuffer.value
+      rfidBuffer.value = ''
+      performIdentify(token)
+    } else {
+      rfidBuffer.value = ''
+    }
+  } else if (e.key.length === 1) {
+    if (isFast || rfidBuffer.value.length > 0) {
+      e.preventDefault()
+      rfidBuffer.value += e.key
+    } else {
+      rfidBuffer.value = e.key
+    }
+  }
+
+  rfidTimeout = setTimeout(() => {
+    rfidBuffer.value = ''
+  }, 100)
+}
+
+async function performIdentify(token: string) {
+  identifying.value = true
+  identifyError.value = ''
+  identifiedMember.value = null
+  try {
+    const res = await api.post('/members/identify-rfid', { token })
+    identifiedMember.value = res.data
+  } catch (e: any) {
+    identifyError.value = e.response?.data?.message || 'Token konnte nicht identifiziert werden.'
+  }
+  identifying.value = false
+}
+
+function editIdentifiedMember() {
+  const member = members.value.find(m => m.id === identifiedMember.value?.id)
+  if (member) {
+    closeIdentifyDialog()
+    openDialog(member)
+  }
+}
+
 onMounted(() => {
   loadMembers()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleGlobalKeydown, true)
 })
 </script>

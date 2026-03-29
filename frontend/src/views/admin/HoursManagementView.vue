@@ -1,8 +1,8 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <div class="d-flex align-center mb-6">
-      <v-icon size="x-large" color="primary" class="mr-3">mdi-shield-check</v-icon>
-      <h1 class="text-h3 font-weight-bold">Stunden-Verwaltung</h1>
+      <v-icon size="x-large" color="primary" class="mr-3">mdi-calendar-check</v-icon>
+      <h1 class="text-h3 font-weight-bold">Events & Arbeitsdienste</h1>
     </div>
 
     <v-tabs v-model="tab" color="primary">

@@ -13,6 +13,7 @@ export interface Member {
   status: string;
   birthDate?: string;
   roles?: string[];
+  username?: string;
   user?: {
     id: string;
     username: string;

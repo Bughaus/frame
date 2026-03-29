@@ -6,6 +6,7 @@ export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(localStorage.getItem('accessToken') || null)
   const storedUser = localStorage.getItem('user')
   const user = ref<any>(storedUser ? JSON.parse(storedUser) : null)
+  const inboxStatus = ref<any>(null)
   
   const isAuthenticated = computed(() => !!accessToken.value)
 
@@ -34,7 +35,18 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = data.user
     localStorage.setItem('accessToken', data.accessToken)
     localStorage.setItem('user', JSON.stringify(data.user))
+    fetchInboxStatus() // Initial fetch
     return true
+  }
+
+  async function fetchInboxStatus() {
+    if (!isAuthenticated.value) return
+    try {
+      const { data } = await api.get('/members/me/inbox-status')
+      inboxStatus.value = data
+    } catch (e) {
+      console.error('Failed to fetch inbox status', e)
+    }
   }
 
   function setToken(token: string) {
@@ -47,6 +59,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     localStorage.removeItem('accessToken')
     localStorage.removeItem('user')
+    inboxStatus.value = null
   }
 
   function hasRole(allowedRoles: string[]) {
@@ -54,5 +67,5 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value.roles.some((r: string) => allowedRoles.includes(r))
   }
 
-  return { accessToken, user, isAuthenticated, login, loginRfid, setToken, logout, hasRole }
+  return { accessToken, user, inboxStatus, isAuthenticated, login, loginRfid, setToken, logout, hasRole, fetchInboxStatus }
 })

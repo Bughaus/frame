@@ -8,7 +8,12 @@ export class ArticlesService {
   constructor(private prisma: PrismaService) {}
 
   create(createArticleDto: CreateArticleDto) {
-    return this.prisma.article.create({ data: createArticleDto });
+    return this.prisma.article.create({
+      data: {
+        ...createArticleDto,
+        taxRate: createArticleDto.taxRate ?? 0,
+      },
+    });
   }
 
   findAll() {

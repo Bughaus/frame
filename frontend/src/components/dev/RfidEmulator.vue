@@ -47,9 +47,9 @@ const fixedTokens = [
 
 function simulateScan() {
   for (const char of token.value) {
-    window.dispatchEvent(new KeyboardEvent('keypress', { key: char }))
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: char, bubbles: true }))
   }
-  window.dispatchEvent(new KeyboardEvent('keypress', { key: 'Enter' }))
+  window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }))
 }
 </script>
 

@@ -447,7 +447,6 @@ model ImportLog {
 enum Role {
   MEMBER
   VORSTAND
-  SCHATZMEISTER
   MITARBEITER
 }
 

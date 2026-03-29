@@ -1,10 +1,9 @@
 <template>
   <v-container fluid>
-    <v-row class="mb-4">
-      <v-col>
-        <h1 class="text-h4">Schatzmeister-Dashboard</h1>
-      </v-col>
-    </v-row>
+    <div class="d-flex align-center mb-6">
+      <v-icon size="x-large" color="primary" class="mr-3">mdi-bank</v-icon>
+      <h1 class="text-h3 font-weight-bold">Vereinskasse</h1>
+    </div>
     <v-row>
       <v-col cols="12" md="7">
         <v-card class="mb-4">
@@ -29,22 +28,7 @@
           </v-card-actions>
         </v-card>
       </v-col>
-
       <v-col cols="12" md="5">
-        <v-card class="mb-4">
-          <v-card-title class="bg-primary text-white">Gästekasse (Slots)</v-card-title>
-          <v-card-text class="pt-4">
-            <v-data-table :headers="guestHeaders" :items="guestSlots" :loading="loading" class="elevation-1" density="compact">
-              <template #item.status="{ item }">
-                <v-chip :color="item.isActive ? 'success' : 'warning'" size="small">{{ item.isActive ? 'Frei' : 'Belegt (Offen)' }}</v-chip>
-              </template>
-              <template #item.actions="{ item }">
-                <v-btn v-if="!item.isActive" size="small" color="success" text @click="clearSlot(item.id)">Abrechnen</v-btn>
-              </template>
-            </v-data-table>
-          </v-card-text>
-        </v-card>
-        
         <v-card>
           <v-card-title class="bg-primary text-white d-flex justify-space-between align-center">
             Eigenbelege
@@ -113,21 +97,6 @@
       </v-card>
     </v-dialog>
 
-    <!-- Abrechnen Form -->
-    <v-dialog v-model="abrechnenDialog" max-width="400px">
-      <v-card>
-        <v-card-title class="bg-primary text-white">Slot Abrechnen</v-card-title>
-        <v-card-text class="pt-6">
-          <v-select v-model="abrechnenForm.method" :items="paymentOptions" label="Zahlungsart" variant="outlined"></v-select>
-          <v-text-field v-if="abrechnenForm.method === 'PAYPAL'" v-model="abrechnenForm.paypalReference" label="PayPal Referenz (optional)" variant="outlined" density="compact"></v-text-field>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn variant="text" @click="abrechnenDialog = false">Abbrechen</v-btn>
-          <v-btn color="success" variant="flat" @click="confirmAbrechnen" :loading="saving">Bestätigen</v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
   </v-container>
 </template>
 
@@ -137,7 +106,6 @@ import { api } from '../../api/axios'
 import { cashRegisterApi } from '../../api/cash-register'
 
 const invoices = ref<any[]>([])
-const guestSlots = ref<any[]>([])
 const eigenbelege = ref<any[]>([])
 const bookings = ref<any[]>([])
 const loading = ref(false)
@@ -149,13 +117,6 @@ const invoiceHeaders: any = [
   { title: 'Betrag', key: 'totalGross' },
   { title: 'Status', key: 'status' },
   { title: 'PDF', key: 'actions', sortable: false, align: 'end' },
-]
-
-const guestHeaders: any = [
-  { title: 'Slot', key: 'slotNumber' },
-  { title: 'Name', key: 'displayName' },
-  { title: 'Status', key: 'status' },
-  { title: 'Aktion', key: 'actions', align: 'end' },
 ]
 
 const eigenbelegHeaders: any = [
@@ -178,23 +139,14 @@ const eigenbelegDialog = ref(false)
 const saving = ref(false)
 const ebForm = ref<any>({ type: 'EXPENSE', amount: 0, category: '', description: '', date: new Date().toISOString().split('T')[0], file: null })
 
-const abrechnenDialog = ref(false)
-const abrechnenForm = ref({ slotId: '', method: 'CASH', paypalReference: '' })
-const paymentOptions = [
-  { title: 'Bar (Kasse)', value: 'CASH' },
-  { title: 'PayPal (Manuell geprüft)', value: 'PAYPAL' },
-]
-
 async function load() {
   loading.value = true
-  const [invs, guests, ebs, bks] = await Promise.all([
+  const [invs, ebs, bks] = await Promise.all([
     api.get('/cash-register/invoices').then(res => res.data),
-    api.get('/cash-register/guest-slots').then(res => res.data),
     api.get('/cash-register/eigenbelege').then(res => res.data),
     cashRegisterApi.getGlobalTransactions()
   ])
   invoices.value = invs
-  guestSlots.value = guests
   eigenbelege.value = ebs
   bookings.value = bks
   loading.value = false
@@ -246,25 +198,6 @@ async function markAsPaid(id: string) {
   }
 }
 
-function clearSlot(id: string) {
-  abrechnenForm.value = { slotId: id, method: 'CASH', paypalReference: '' }
-  abrechnenDialog.value = true
-}
-
-async function confirmAbrechnen() {
-  saving.value = true
-  try {
-    await api.post(`/cash-register/guest-slots/${abrechnenForm.value.slotId}/clear`, {
-      paymentMethod: abrechnenForm.value.method,
-      paypalReference: abrechnenForm.value.paypalReference
-    })
-    abrechnenDialog.value = false
-    load()
-  } catch(e) {
-    alert('Fehler beim Abrechnen!')
-  }
-  saving.value = false
-}
 
 async function submitEigenbeleg() {
   saving.value = true;

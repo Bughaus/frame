@@ -1,14 +1,10 @@
 <template>
-  <v-container>
-    <div class="d-flex align-center mb-6">
-      <v-icon size="x-large" color="primary" class="mr-3">mdi-wrench-clock</v-icon>
-      <h1 class="text-h3 font-weight-bold">Arbeitsstunden</h1>
-    </div>
+  <v-container fluid class="pa-4">
 
     <!-- Summary & Stats -->
     <v-row v-if="stats">
       <v-col cols="12" md="4">
-        <v-card class="pa-4 elevation-2 text-center" color="surface">
+        <v-card class="pa-4 elevation-2 text-center h-100" color="surface">
           <div class="text-overline text-grey">Fortschritt {{ year }}</div>
           <div class="text-h3 font-weight-bold text-primary">
             {{ stats.confirmedHours }} / {{ quota?.requiredHours || 0 }}h
@@ -23,7 +19,7 @@
         </v-card>
       </v-col>
       <v-col cols="12" md="8">
-        <v-card class="pa-4 elevation-2" color="surface">
+        <v-card class="pa-4 elevation-2 h-100" color="surface">
           <div class="text-h6 mb-2">Details</div>
           <v-row>
             <v-col cols="6" sm="3">

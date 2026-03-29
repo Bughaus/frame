@@ -8,4 +8,7 @@ export class UpdateMemberDto extends PartialType(CreateMemberDto) {
   @IsArray()
   @IsEnum(Role, { each: true })
   roles?: Role[];
+
+  @IsOptional()
+  username?: string;
 }

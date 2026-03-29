@@ -39,7 +39,9 @@ export interface CreateGuestTransactionDto {
 export const cashRegisterApi = {
   getAccountMe: () => api.get<any>('/cash-register/accounts/me').then(res => res.data),
   getAccounts: () => api.get<any[]>('/cash-register/accounts').then(res => res.data),
+  getAccount: (id: string) => api.get<any>(`/cash-register/accounts/${id}`).then(res => res.data),
   createTransaction: (data: CreateTransactionDto) => api.post('/cash-register/transactions', data).then(res => res.data),
+  deleteTransaction: (id: string) => api.delete(`/cash-register/transactions/${id}`).then(res => res.data),
   
   getGlobalTransactions: () => api.get<any[]>('/cash-register/global-transactions').then(res => res.data),
 

@@ -1,11 +1,11 @@
 <template>
   <v-container fluid>
-    <v-row class="mb-4">
-      <v-col class="d-flex justify-space-between align-center">
-        <h1 class="text-h4">Artikelverwaltung</h1>
-        <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog()">Neuer Artikel</v-btn>
-      </v-col>
-    </v-row>
+    <div class="d-flex align-center mb-6">
+      <v-icon size="x-large" color="primary" class="mr-3">mdi-package-variant</v-icon>
+      <h1 class="text-h3 font-weight-bold">Artikelstamm</h1>
+      <v-spacer></v-spacer>
+      <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog()">Neuer Artikel</v-btn>
+    </div>
     <v-row>
       <v-col>
         <v-card>
@@ -17,7 +17,6 @@
               </v-avatar>
             </template>
             <template #item.price="{ item }">{{ Number(item.price).toFixed(2) }}€</template>
-            <template #item.taxRate="{ item }">{{ Number(item.taxRate).toFixed(2) }}%</template>
             <template #item.actions="{ item }">
               <v-btn icon size="small" variant="text" color="primary" @click="editItem(item)">
                 <v-icon>mdi-pencil</v-icon>
@@ -42,7 +41,6 @@
           <v-text-field v-model="editedItem.sku" label="SKU / Artikelnummer" variant="outlined" density="compact"></v-text-field>
           <v-text-field v-model="editedItem.category" label="Kategorie (z.B. Getränke)" variant="outlined" density="compact"></v-text-field>
           <v-text-field v-model.number="editedItem.price" type="number" label="Preis (€)" variant="outlined" density="compact"></v-text-field>
-          <v-text-field v-model.number="editedItem.taxRate" type="number" label="MwSt. (%)" variant="outlined" density="compact"></v-text-field>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -68,7 +66,6 @@ const headers: any = [
   { title: 'Kategorie', key: 'category' },
   { title: 'Name', key: 'name' },
   { title: 'Preis', key: 'price' },
-  { title: 'MwSt.', key: 'taxRate' },
   { title: 'Aktionen', key: 'actions', sortable: false, align: 'end' },
 ]
 
@@ -77,7 +74,7 @@ const loading = ref(false)
 
 const dialog = ref(false)
 const saving = ref(false)
-const defaultItem: Article = { id: '', name: '', sku: '', price: 0, taxRate: 7.0, category: '', isActive: true }
+const defaultItem: Article = { id: '', name: '', sku: '', price: 0, taxRate: 0, category: '', isActive: true }
 const editedItem = ref<Article>({ ...defaultItem })
 
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -114,7 +111,7 @@ async function save() {
       name: editedItem.value.name,
       category: editedItem.value.category,
       price: Number(editedItem.value.price),
-      taxRate: Number(editedItem.value.taxRate)
+      taxRate: 0
     }
 
     if (editedItem.value.id) {

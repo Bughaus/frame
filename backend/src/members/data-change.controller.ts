@@ -15,7 +15,7 @@ export class DataChangeController {
   ) {}
 
   @Post('me/change-requests')
-  @Roles(Role.MEMBER, Role.MITARBEITER, Role.VORSTAND, Role.SCHATZMEISTER)
+  @Roles(Role.MEMBER, Role.MITARBEITER, Role.VORSTAND)
   async createRequest(@Request() req: any, @Body() body: { field: string; oldValue?: string; newValue: string; reason?: string }) {
     const member = await this.prisma.member.findUnique({ where: { userId: req.user.userId } });
     if (!member) throw new Error('Member not found');
@@ -23,7 +23,7 @@ export class DataChangeController {
   }
 
   @Get('me/change-requests')
-  @Roles(Role.MEMBER, Role.MITARBEITER, Role.VORSTAND, Role.SCHATZMEISTER)
+  @Roles(Role.MEMBER, Role.MITARBEITER, Role.VORSTAND)
   async getMyRequests(@Request() req: any) {
     const member = await this.prisma.member.findUnique({ where: { userId: req.user.userId } });
     if (!member) throw new Error('Member not found');

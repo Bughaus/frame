@@ -2,8 +2,24 @@
   "nav": {
     "dashboard": "Übersicht"
   },
+  "members": {
+    "identify": "Hardware identifizieren",
+    "scanNow": "Chip jetzt scannen...",
+    "scanHint": "Halte einen RFID-Chip an das Lesegerät, um den Inhaber zu finden.",
+    "editIdentified": "Identifiziertes Mitglied bearbeiten",
+    "notFound": "Dieser RFID Token ist keinem Mitglied zugeordnet."
+  },
   "auth": {
     "login": "Anmelden",
-    "logout": "Abmelden"
+    "logout": "Abmelden",
+    "username": "Benutzername",
+    "password": "Passwort",
+    "loginWithRfid": "Oder RFID Token scannen...",
+    "invalidLogin": "Ungültige Anmeldedaten.",
+    "invalidRfid": "RFID Token ungültig.",
+    "scanTitle": "Chip scannen",
+    "scanInstruction": "Bitte halten Sie Ihren RFID-Chip an das Lesegerät, um sich anzumelden.",
+    "usePassword": "Login mit Zugangsdaten",
+    "backToScan": "Zurück zum RFID-Scan"
   }
 }
