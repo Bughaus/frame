@@ -2,8 +2,12 @@ import axios from 'axios'
 import { useAuthStore } from '../stores/auth.store'
 import { useDeviceStore } from '../stores/device.store'
 
+const isProduction = import.meta.env.PROD;
+const apiBaseURL = import.meta.env.VITE_API_URL || 
+  (isProduction ? '/api/v1' : `${window.location.protocol}//${window.location.hostname}:3000/api/v1`);
+
 export const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || `${window.location.protocol}//${window.location.hostname}:3000/api/v1`,
+  baseURL: apiBaseURL,
   headers: {
     'Content-Type': 'application/json'
   }
