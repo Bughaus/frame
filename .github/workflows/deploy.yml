@@ -53,9 +53,6 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to Server via SSH
-        uses: appleboy/ssh-action@v1.0.3
-        with:
       - name: Copy configuration files via SCP
         uses: appleboy/scp-action@v0.1.7
         with:
