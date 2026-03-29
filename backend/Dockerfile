@@ -10,7 +10,7 @@ COPY package*.json ./
 COPY prisma ./prisma/
 
 # Install even devDependencies to build the NestJS project
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 COPY . .
 
@@ -26,7 +26,7 @@ WORKDIR /app
 # Install only production dependencies
 COPY package*.json ./
 COPY prisma ./prisma/
-RUN npm ci --only=production
+RUN npm ci --only=production --legacy-peer-deps
 
 # Copy built assets from builder stage
 COPY --from=builder /app/dist ./dist
