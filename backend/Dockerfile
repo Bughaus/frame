@@ -23,6 +23,9 @@ FROM node:22-alpine AS runner
 
 WORKDIR /app
 
+# Install runtime dependencies
+RUN apk add --no-cache openssl
+
 # Install only production dependencies
 COPY package*.json ./
 COPY prisma ./prisma/
