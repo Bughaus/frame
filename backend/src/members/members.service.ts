@@ -16,7 +16,8 @@ export class MembersService {
       if (existing) throw new ConflictException('Email already in use');
     }
 
-    const tempPassword = await bcrypt.hash('start123', 12);
+    const defaultPassword = process.env.DEFAULT_MEMBER_PASSWORD || crypto.randomBytes(8).toString('hex');
+    const tempPassword = await bcrypt.hash(defaultPassword, 12);
     const username = `${createMemberDto.firstName} ${createMemberDto.lastName}`;
 
     return this.prisma.$transaction(async (tx) => {
@@ -137,15 +138,15 @@ export class MembersService {
     const member = await this.prisma.member.findUnique({ where: { id: memberId } });
     if (!member) throw new NotFoundException('Mitglied nicht gefunden.');
     
-    const tempPassword = 'start123';
-    const hash = await bcrypt.hash(tempPassword, 12);
+    const defaultPassword = process.env.DEFAULT_MEMBER_PASSWORD || crypto.randomBytes(8).toString('hex');
+    const hash = await bcrypt.hash(defaultPassword, 12);
     
     await this.prisma.user.update({ 
       where: { id: member.userId }, 
       data: { passwordHash: hash } 
     });
     
-    return { message: `Passwort für ${member.firstName} ${member.lastName} wurde auf 'start123' zurückgesetzt.` };
+    return { message: `Passwort für ${member.firstName} ${member.lastName} wurde auf das Standard-Passwort (${defaultPassword}) zurückgesetzt.` };
   }
   async identifyByRfid(token: string) {
     const hash = crypto.createHash('sha256').update(token).digest('hex');

@@ -1,0 +1,35 @@
+{
+    # Global Config
+    email {$ACME_EMAIL}
+}
+
+{$DOMAIN_NAME} {
+    # Reverse Proxy to Backend API
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+
+    # Reverse Proxy to Frontend (served via Nginx internally)
+    handle {
+        reverse_proxy frontend:80
+    }
+
+    # Standard security headers
+    header {
+        # disable FLoC tracking
+        Permissions-Policy "interest-cohort=()"
+        # enable HSTS
+        Strict-Transport-Security "max-age=31536000;"
+        # clickjacking protection
+        X-Frame-Options "DENY"
+        # prevent sniffing
+        X-Content-Type-Options "nosniff"
+        # hide Caddy version
+        -Server
+    }
+
+    # Logging
+    log {
+        output file /var/log/caddy/access.log
+    }
+}

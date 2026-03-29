@@ -5,19 +5,35 @@ import * as crypto from 'crypto'
 const prisma = new PrismaClient()
 
 async function main() {
-  const passwordHash = await bcrypt.hash('start123', 12)
-  console.log('Seeding expanded demo data...')
+  const isProduction = process.env.NODE_ENV === 'production'
+  
+  // 1. Determine Admin Credentials
+  const adminUsername: string = process.env.INITIAL_ADMIN_USERNAME || 'admin'
+  const adminPassword: string | undefined = process.env.INITIAL_ADMIN_PASSWORD
+  const adminEmailEnv: string | undefined = process.env.INITIAL_ADMIN_EMAIL
+  const adminEmail: string = adminEmailEnv || `${adminUsername}@verein.local`
 
-  // 1. Create Staff Members (Roles) - SCHATZMEISTER role removed, using VORSTAND
-  const rolesData = [
-    { username: 'admin', roles: [Role.VORSTAND, Role.MEMBER], firstName: 'Alexander', lastName: 'Admin', memberNumber: 'A-001' },
-    { username: 'vorstand', roles: [Role.VORSTAND, Role.MEMBER], firstName: 'Stefan', lastName: 'Vorstand', memberNumber: 'V-001' },
-    { username: 'mitarbeiter', roles: [Role.MITARBEITER, Role.MEMBER], firstName: 'Max', lastName: 'Mitarbeiter', memberNumber: 'M-001' },
-    { username: 'mitglied', roles: [Role.MEMBER], firstName: 'Markus', lastName: 'Mitglied', memberNumber: 'L-001' },
-  ]
+  if (isProduction && !adminPassword) {
+    throw new Error('CRITICAL SECURITY ERROR: INITIAL_ADMIN_PASSWORD must be set in production mode!')
+  }
 
-  // Add 15 more members
-  const moreMembers = [
+  const defaultPassword = adminPassword || 'start123'
+  const passwordHash = await bcrypt.hash(defaultPassword, 12)
+  
+  console.log(`Seeding database (Mode: ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'})...`)
+
+  // 1. Create Staff Members (Roles)
+  const rolesData = isProduction 
+    ? [{ username: adminUsername, roles: [Role.VORSTAND, Role.MEMBER], firstName: 'Alexander', lastName: 'Admin', memberNumber: 'A-001' }]
+    : [
+        { username: 'admin', roles: [Role.VORSTAND, Role.MEMBER], firstName: 'Alexander', lastName: 'Admin', memberNumber: 'A-001' },
+        { username: 'vorstand', roles: [Role.VORSTAND, Role.MEMBER], firstName: 'Stefan', lastName: 'Vorstand', memberNumber: 'V-001' },
+        { username: 'mitarbeiter', roles: [Role.MITARBEITER, Role.MEMBER], firstName: 'Max', lastName: 'Mitarbeiter', memberNumber: 'M-001' },
+        { username: 'mitglied', roles: [Role.MEMBER], firstName: 'Markus', lastName: 'Mitglied', memberNumber: 'L-001' },
+      ]
+
+  // Add more members only in development
+  const moreMembers = isProduction ? [] : [
     { username: 'jdoe', firstName: 'John', lastName: 'Doe', memberNumber: 'L-002' },
     { username: 'asmith', firstName: 'Alice', lastName: 'Smith', memberNumber: 'L-003' },
     { username: 'rjones', firstName: 'Robert', lastName: 'Jones', memberNumber: 'L-004' },
@@ -49,6 +65,8 @@ async function main() {
       },
     })
 
+    const userEmail: string = (data.username === adminUsername && adminEmail) ? adminEmail : `${data.username}@verein.local`
+
     const member = await prisma.member.upsert({
       where: { memberNumber: data.memberNumber },
       update: {},
@@ -57,7 +75,7 @@ async function main() {
         userId: user.id,
         firstName: data.firstName,
         lastName: data.lastName,
-        email: `${data.username}@verein.local`,
+        email: userEmail,
         status: 'ACTIVE',
       }
     })
@@ -68,8 +86,8 @@ async function main() {
       create: { memberId: member.id }
     })
     
-    // Create RFID Token for Admin
-    if (data.username === 'admin') {
+    // Create RFID Token for Admin (only in dev, or if specifically requested)
+    if (data.username === 'admin' && !isProduction) {
       const rfidTokenPlainText = 'dev-rfid-12345'
       const tokenHash = crypto.createHash('sha256').update(rfidTokenPlainText).digest('hex')
       await prisma.rfidToken.upsert({

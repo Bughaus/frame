@@ -64,7 +64,7 @@
         <v-card-text class="pt-6">
           <v-alert v-if="dialogError" type="error" class="mb-4" density="compact">{{ dialogError }}</v-alert>
           <v-alert type="info" variant="tonal" class="mb-4" density="compact">
-            Login-Name wird automatisch formatiert als <b>vorname.nachname</b>. Das Start-Passwort lautet <b>start123</b>.
+            Login-Name wird automatisch formatiert als <b>vorname.nachname</b>. Das Standard-Passwort ist im System hinterlegt.
           </v-alert>
           <v-container>
             <v-row>
@@ -277,7 +277,7 @@ async function registerRfid() {
 
 async function resetPassword() {
   if (!editedItem.value.id) return
-  if (!confirm('Passwort wirklich auf start123 zurücksetzen?')) return
+  if (!confirm('Passwort wirklich auf das Standard-Passwort zurücksetzen?')) return
   try {
     const res = await api.post(`/members/${editedItem.value.id}/reset-password`)
     alert(res.data.message || 'Passwort zurückgesetzt.')
