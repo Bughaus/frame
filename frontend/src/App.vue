@@ -76,6 +76,7 @@
               <v-divider class="my-1"></v-divider>
               <v-list-item to="/treasurer" prepend-icon="mdi-bank" title="Vereinskasse"></v-list-item>
               <v-list-item to="/accounting" prepend-icon="mdi-playlist-plus" title="Buchungen"></v-list-item>
+              <v-list-item to="/admin/devices" prepend-icon="mdi-tablet-cellphone" title="Geräteverwaltung"></v-list-item>
               <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/hours-management" prepend-icon="mdi-calendar-check" title="Events & Arbeitsdienste"></v-list-item>
               <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/inbox" prepend-icon="mdi-inbox-multiple-outline">
                 <template #title>
@@ -108,7 +109,7 @@
               rounded="pill"
               class="px-2 ml-2 bg-surface-variant"
             >
-              <v-icon start>mdi-account-circle</v-icon>
+              <v-icon :color="deviceStore.isAuthorized ? 'success' : undefined" start>{{ deviceStore.isAuthorized ? 'mdi-shield-check' : 'mdi-account-circle' }}</v-icon>
               <span class="text-none font-weight-bold">{{ userFullName }}</span>
               <v-icon end size="small">mdi-chevron-down</v-icon>
             </v-btn>
@@ -126,6 +127,7 @@
               ></v-badge>
             </template>
           </v-list-item>
+          <v-list-item v-if="!deviceStore.isAuthorized" to="/activate-device" prepend-icon="mdi-tablet-cellphone" title="Gerät autorisieren" color="primary"></v-list-item>
           <v-list-item to="/help" prepend-icon="mdi-help-circle-outline" title="Hilfe & Anleitungen"></v-list-item>
           <v-divider class="my-1"></v-divider>
           
@@ -166,7 +168,40 @@
           <v-btn icon size="x-small" variant="text" class="mr-2" @click="aboutDialog = true">
             <v-icon size="small">mdi-information-outline</v-icon>
           </v-btn>
-          <div>created with a vibe of Metal by <span class="text-primary font-weight-bold">Michael Backhaus</span></div>
+          <div class="mr-4">created with a vibe of Metal by <span class="text-primary font-weight-bold">Michael Backhaus</span></div>
+          
+          <!-- Device Status Pill -->
+          <v-chip
+            v-if="deviceStore.isAuthorized"
+            size="x-small"
+            color="success"
+            variant="tonal"
+            prepend-icon="mdi-shield-check"
+            class="font-weight-bold"
+          >
+            Autorisiertes Club-Gerät: {{ deviceStore.deviceName }}
+          </v-chip>
+          <v-chip
+            v-else-if="deviceStore.isBootstrapMode"
+            size="x-small"
+            color="warning"
+            variant="elevated"
+            prepend-icon="mdi-shield-alert-outline"
+            class="font-weight-bold"
+            to="/admin/devices"
+          >
+            System-Bootstrap-Modus (Aktion erforderlich)
+          </v-chip>
+          <v-chip
+            v-else
+            size="x-small"
+            color="grey"
+            variant="tonal"
+            prepend-icon="mdi-shield-off-outline"
+            class="font-weight-bold"
+          >
+            Nicht autorisiertes Gerät
+          </v-chip>
         </div>
         <div v-if="authStore.isAuthenticated" class="d-flex align-center">
           <v-icon size="small" class="mr-1">mdi-account-outline</v-icon>
@@ -187,6 +222,7 @@
 import { useTheme } from 'vuetify'
 import { computed, onMounted, ref, onUnmounted, watch } from 'vue'
 import { useAuthStore } from './stores/auth.store'
+import { useDeviceStore } from './stores/device.store'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from './api/axios'
 import RfidEmulator from './components/dev/RfidEmulator.vue'
@@ -194,6 +230,7 @@ import AboutDialog from './components/AboutDialog.vue'
 
 const theme = useTheme()
 const authStore = useAuthStore()
+const deviceStore = useDeviceStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -203,7 +240,8 @@ const adminRoutes = [
   '/treasurer',
   '/accounting',
   '/hours-management',
-  '/inbox'
+  '/inbox',
+  '/admin/devices'
 ]
 const isAdminActive = computed(() => adminRoutes.some(r => route.path.startsWith(r)))
 
@@ -223,6 +261,9 @@ onMounted(() => {
   if (saved && ['vereinTheme', 'vereinDarkTheme', 'highContrastTheme'].includes(saved)) {
     theme.global.name.value = saved
   }
+  
+  // Initial device status check
+  deviceStore.fetchStatus()
 })
 
 function setTheme(name: string) {
@@ -241,20 +282,34 @@ const hasPendingItems = computed(() => !!inboxCount.value?.total)
 let pollingInterval: any = null
 
 async function refreshAllStatus() {
-  if (!authStore.isAuthenticated) return
+  if (!authStore.isAuthenticated) {
+    // Still may want to check device status even when and if not auth'd 
+    // for bootstrap visibility on login page
+    deviceStore.fetchStatus()
+    return
+  }
   
   // 1. Board Status (if applicable)
   if (authStore.hasRole(['VORSTAND'])) {
     try {
       const res = await api.get('/members/inbox-status/count')
       inboxCount.value = res.data
-    } catch (e) {
-      console.warn('Could not fetch board inbox status')
+    } catch (e: any) {
+      // Silently ignore hardware restriction errors for background polling
+      const isHardwareError = e.response?.data?.message?.includes('autorisierten Club-Geräten') || 
+                              e.response?.data?.message?.includes('nicht (mehr) für sensible Funktionen autorisiert');
+      
+      if (!isHardwareError) {
+        console.warn('Could not fetch board inbox status', e)
+      }
     }
   }
 
   // 2. Member Inbox Status
   authStore.fetchInboxStatus()
+  
+  // 3. Device Security Status
+  deviceStore.fetchStatus()
 }
 
 onMounted(() => {

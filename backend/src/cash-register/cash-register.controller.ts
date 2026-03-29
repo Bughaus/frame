@@ -7,11 +7,12 @@ import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { CreateGuestTransactionDto } from './dto/create-guest-transaction.dto';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
+import { SecureDeviceGuard } from '../common/guards/secure-device.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
 
 @Controller('cash-register')
-@UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard, SecureDeviceGuard)
 export class CashRegisterController {
   constructor(private readonly cashRegisterService: CashRegisterService) { }
 

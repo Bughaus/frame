@@ -509,3 +509,28 @@ enum EigenbelegType {
   INCOME
   EXPENSE
 }
+
+model SecureDevice {
+  id           String   @id @default(uuid())
+  name         String
+  deviceId     String   @unique
+  tokenHash    String?  @unique
+  isActive     Boolean  @default(true)
+  lastUsedAt   DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([tokenHash])
+  @@index([deviceId])
+}
+
+model DeviceActivationCode {
+  id        String    @id @default(uuid())
+  code      String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdBy String
+  createdAt DateTime  @default(now())
+
+  @@index([code])
+}

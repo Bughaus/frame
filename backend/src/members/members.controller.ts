@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../common/guards/jwt-auth.guard';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@prisma/client';
+import { SecureDeviceGuard } from '../common/guards/secure-device.guard';
 
 @Controller('members')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -14,6 +15,7 @@ export class MembersController {
   constructor(private readonly membersService: MembersService) {}
 
   @Post()
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND, Role.MITARBEITER)
   create(@Body() createMemberDto: CreateMemberDto) {
     return this.membersService.create(createMemberDto);
@@ -32,6 +34,7 @@ export class MembersController {
   }
 
   @Get('export')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND) // MITARBEITER cannot export sensitive data
   async exportCsv(@Res() res: Response) {
     const members = await this.membersService.findAll();
@@ -67,6 +70,7 @@ export class MembersController {
   // --- Administrative & Special Routes (Must be before wildcard :id routes) ---
 
   @Get('inbox-status/count')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND)
   async getInboxStatus() {
     return this.membersService.getInboxStatus();
@@ -78,18 +82,21 @@ export class MembersController {
   }
 
   @Get('change-requests')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND)
   async findAllChangeRequests() {
     return this.membersService.findAllChangeRequests();
   }
 
   @Get('feedback')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND)
   async findAllFeedback() {
     return this.membersService.findAllFeedback();
   }
 
   @Post('identify-rfid')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND, Role.MITARBEITER)
   identifyByRfid(@Body() body: { token: string }) {
     return this.membersService.identifyByRfid(body.token);
@@ -109,30 +116,35 @@ export class MembersController {
   }
 
   @Put(':id')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND, Role.MITARBEITER) // Allow MITARBEITER to edit existing members
   update(@Param('id') id: string, @Body() updateMemberDto: UpdateMemberDto, @Request() req: any) {
     return this.membersService.update(id, updateMemberDto, req.user.userId);
   }
 
   @Delete(':id')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND, Role.MITARBEITER) // Allow MITARBEITER to remove/deactivate members
   remove(@Param('id') id: string) {
     return this.membersService.remove(id);
   }
 
   @Post(':id/rfid')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND, Role.MITARBEITER)
   registerRfid(@Param('id') id: string, @Body() body: { token: string }) {
     return this.membersService.registerRfid(id, body.token);
   }
 
   @Post(':id/reset-password')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND, Role.MITARBEITER)
   resetPassword(@Param('id') id: string) {
     return this.membersService.resetPassword(id);
   }
 
   @Patch('change-requests/:id')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND)
   async updateChangeRequestStatus(@Param('id') id: string, @Body() body: { status: 'APPROVED' | 'REJECTED' }) {
     return this.membersService.updateChangeRequestStatus(id, body.status);
@@ -149,12 +161,14 @@ export class MembersController {
   }
 
   @Post('feedback/:id/reply')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND)
   async addFeedbackReply(@Param('id') id: string, @Request() req: any, @Body() body: { message: string, isInternal: boolean }) {
     return this.membersService.addFeedbackReply(id, req.user.username, body);
   }
 
   @Patch('feedback/:id/status')
+  @UseGuards(SecureDeviceGuard)
   @Roles(Role.VORSTAND)
   async updateFeedbackStatus(@Param('id') id: string, @Body() body: { status: 'OPEN' | 'ANSWERED' | 'CLOSED' }) {
     return this.membersService.updateFeedbackStatus(id, body.status);
