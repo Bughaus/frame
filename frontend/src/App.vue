@@ -154,6 +154,42 @@
           <v-list-item @click="logout" prepend-icon="mdi-logout" title="Abmelden" color="error"></v-list-item>
         </v-list>
       </v-menu>
+      
+      <!-- Theme Selector for Guests (Issue #16) -->
+      <v-menu v-if="!authStore.isAuthenticated" offset="5">
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            icon
+            variant="text"
+            class="ml-2"
+          >
+            <v-icon>{{ currentThemeIcon }}</v-icon>
+            <v-tooltip activator="parent" location="bottom">Design anpassen</v-tooltip>
+          </v-btn>
+        </template>
+        <v-list density="compact" nav min-width="200">
+          <v-list-subheader class="text-overline px-4">Design</v-list-subheader>
+          <v-list-item 
+            @click="setTheme('vereinTheme')" 
+            prepend-icon="mdi-weather-sunny" 
+            title="Helles Design"
+            :active="theme.global.name.value === 'vereinTheme'"
+          ></v-list-item>
+          <v-list-item 
+            @click="setTheme('vereinDarkTheme')" 
+            prepend-icon="mdi-weather-night" 
+            title="Dunkles Design"
+            :active="theme.global.name.value === 'vereinDarkTheme'"
+          ></v-list-item>
+          <v-list-item 
+            @click="setTheme('highContrastTheme')" 
+            prepend-icon="mdi-contrast-circle" 
+            title="Barrierefrei (Hochkontrast)"
+            :active="theme.global.name.value === 'highContrastTheme'"
+          ></v-list-item>
+        </v-list>
+      </v-menu>
     </v-app-bar>
 
     <v-main>
@@ -249,6 +285,12 @@ declare const __APP_VERSION__: string
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.1.0'
 
 const aboutDialog = ref(false)
+
+const currentThemeIcon = computed(() => {
+  if (theme.global.name.value === 'vereinTheme') return 'mdi-weather-sunny'
+  if (theme.global.name.value === 'vereinDarkTheme') return 'mdi-weather-night'
+  return 'mdi-contrast-circle'
+})
 
 const userFullName = computed(() => {
   const u = authStore.user
