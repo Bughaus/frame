@@ -5,6 +5,10 @@ set -e
 echo "Syncing database schema..."
 npx prisma db push --skip-generate
 
+# Run seeding (ensures admin user exists)
+echo "Seeding database..."
+npx prisma db seed
+
 # Start the actual NestJS application
 echo "Starting backend..."
 exec "$@"
