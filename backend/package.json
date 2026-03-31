@@ -44,7 +44,7 @@
     "prisma": "5.22.0"
   },
   "prisma": {
-    "seed": "node dist/prisma/seed.js"
+    "seed": "node dist/prisma/seed.js || ts-node --transpile-only prisma/seed.ts"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",
