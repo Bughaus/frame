@@ -35,7 +35,12 @@ RUN npm ci --only=production --legacy-peer-deps
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
+# Copy and setup entrypoint script for automated DB sync
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 EXPOSE 3000
 
-# Start the application
+# Use entrypoint script to sync DB before starting app
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["npm", "run", "start:prod"]
