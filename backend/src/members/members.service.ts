@@ -63,7 +63,7 @@ export class MembersService {
   }
 
   async update(id: string, updateMemberDto: UpdateMemberDto, currentUserId?: string) {
-    const { roles, id: _id, userId, user, account, hoursEntries, feedbacks, dataChangeRequests, createdAt, updatedAt, memberSince, memberUntil, ...memberData } = updateMemberDto as any;
+    const { roles, username, id: _id, userId, user, account, hoursEntries, feedbacks, dataChangeRequests, createdAt, updatedAt, memberSince, memberUntil, ...memberData } = updateMemberDto as any;
     
     const emailNormalized = memberData.email && memberData.email.trim() !== "" ? memberData.email : null;
     const { email: _unused2, ...restMemberData } = memberData;
