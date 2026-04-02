@@ -433,8 +433,9 @@
     "fromAddress": "Absender-Adresse",
     "fromName": "Absender-Name",
     "smtpSecure": "SSL/TLS Verschlüsselung verwenden",
-    "emailSent": "Test-Email wurde versendet!",
+    "emailSent": "Test-Email wurde an {email} versendet!",
     "emailFailed": "Fehler beim Senden der Test-Email",
+    "testEmailNoUserEmail": "Deine E-Mail-Adresse konnte nicht gefunden werden. Bitte hinterlege eine E-Mail in deinem Profil.",
     "navSettings": "Einstellungen",
     "rfidLoginEnabled": "RFID-Login global aktivieren",
     "smtpSecureHint": "Aus: Nutzt opportunistisches STARTTLS (empfohlen für Port 587). An: Nutzt direktes SSL/TLS (empfohlen für Port 465)."

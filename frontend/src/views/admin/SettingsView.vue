@@ -341,9 +341,14 @@ const testEmail = async () => {
   testingEmail.value = true
   try {
     const res = await store.sendTestEmail()
-    showSnackbar(res.message || t('admin.emailSent'), 'success')
+    showSnackbar(t('admin.emailSent', { email: res.recipient }), 'success')
   } catch (e: any) {
-    showSnackbar(e.response?.data?.message || t('admin.emailFailed'), 'error')
+    const errorCode = e.response?.data?.message
+    if (errorCode === 'NO_USER_EMAIL') {
+      showSnackbar(t('admin.testEmailNoUserEmail'), 'error')
+    } else {
+      showSnackbar(t('admin.emailFailed'), 'error')
+    }
   } finally {
     testingEmail.value = false
   }

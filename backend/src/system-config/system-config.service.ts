@@ -1,4 +1,4 @@
-import { Injectable, InternalServerErrorException, Logger } from '@nestjs/common';
+import { Injectable, InternalServerErrorException, Logger, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import * as nodemailer from 'nodemailer';
 
@@ -56,11 +56,15 @@ export class SystemConfigService {
       include: { member: true }
     });
 
-    if (!user || (!user.username && !user.member?.email)) {
-      throw new Error('User email not found');
-    }
+    if (!user) throw new BadRequestException('USER_NOT_FOUND');
+    
+    // Prioritize user's email from member record, fallback to username IF it looks like an email
+    const recipient = user.member?.email || (user.username?.includes('@') ? user.username : null);
 
-    const recipient = config['CLUB_EMAIL'] || user.member?.email || user.username; 
+    if (!recipient) {
+      throw new BadRequestException('NO_USER_EMAIL');
+    }
+    
     const transporter = nodemailer.createTransport({
       host: config['MAIL_SMTP_HOST'],
       port: parseInt(config['MAIL_SMTP_PORT'] || '587'),
@@ -88,10 +92,10 @@ export class SystemConfigService {
           </div>
         `,
       });
-      return { success: true, message: `Test email sent to ${recipient}` };
+      return { success: true, recipient };
     } catch (error: any) {
       this.logger.error('Failed to send test email', error);
-      throw new InternalServerErrorException(`SMTP Connection failed: ${error.message}`);
+      throw new InternalServerErrorException(error.message);
     }
   }
 }
