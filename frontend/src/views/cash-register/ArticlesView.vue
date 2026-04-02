@@ -20,96 +20,52 @@
             :label="t('common.search')"
             single-line
             hide-details
-            density="compact"
-            variant="solo"
-            class="mb-4 mx-1 elevation-0 border flex-shrink-0"
-            style="max-width: 400px"
-            clearable
+            class="pa-4"
           ></v-text-field>
-          <v-table density="compact" hover class="w-100">
-            <thead>
-                <tr>
-                  <th style="width: 40px"></th>
-                  <th style="width: 60px">{{ t('articles.image') }}</th>
-                  <th style="width: 100px" class="sortable-header" @click="toggleSort('sortOrder')">
-                    <div class="d-flex align-center">
-                      <span>{{ t('articles.sort') }}</span>
-                      <v-icon :icon="sortBy === 'sortOrder' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'sortOrder' }"></v-icon>
-                    </div>
-                  </th>
-                  <th class="sortable-header" @click="toggleSort('sku')">
-                    <div class="d-flex align-center">
-                      <span>{{ t('articles.sku') }}</span>
-                      <v-icon :icon="sortBy === 'sku' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'sku' }"></v-icon>
-                    </div>
-                  </th>
-                  <th class="sortable-header" @click="toggleSort('category')">
-                    <div class="d-flex align-center">
-                      <span>{{ t('articles.category') }}</span>
-                      <v-icon :icon="sortBy === 'category' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'category' }"></v-icon>
-                    </div>
-                  </th>
-                  <th class="sortable-header" @click="toggleSort('name')">
-                    <div class="d-flex align-center">
-                      <span>{{ t('articles.name') }}</span>
-                      <v-icon :icon="sortBy === 'name' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'name' }"></v-icon>
-                    </div>
-                  </th>
-                  <th class="sortable-header" @click="toggleSort('price')">
-                    <div class="d-flex align-center">
-                      <span>{{ t('articles.price') }}</span>
-                      <v-icon :icon="sortBy === 'price' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'price' }"></v-icon>
-                    </div>
-                  </th>
-                  <th class="text-right">{{ t('common.actions') }}</th>
-                </tr>
-            </thead>
-            <draggable
-              v-model="filteredArticles"
-              tag="tbody"
-              handle=".drag-handle"
-              item-key="id"
-              @end="onDragEnd"
-              :disabled="search.length > 0 || sortBy !== ''"
-            >
-              <template #item="{ element }">
-                <tr>
-                  <td style="width: 40px">
-                    <v-btn v-if="sortBy === ''" icon="mdi-drag" variant="text" size="small" class="drag-handle" style="cursor: grab" color="grey"></v-btn>
-                    <v-btn v-else icon="mdi-lock-outline" variant="text" size="small" color="grey-lighten-1" disabled></v-btn>
-                  </td>
-                  <td>
-                    <v-avatar size="36" rounded="lg" class="my-1 border" color="surface-variant">
-                      <v-img v-if="element.imageUrl" :src="getImageUrl(element.imageUrl)" cover eager></v-img>
-                      <v-icon v-else color="primary" size="small">{{ element.icon || 'mdi-food-apple' }}</v-icon>
-                    </v-avatar>
-                  </td>
-                  <td style="width: 80px">
-                    <v-chip size="x-small" label color="grey-lighten-2" class="font-weight-bold text-grey-darken-3">{{ element.sortOrder }}</v-chip>
-                  </td>
-                  <td class="text-caption">{{ element.sku }}</td>
-                  <td>
-                    <v-chip size="x-small" variant="tonal" class="text-uppercase">{{ element.category || 'Keine' }}</v-chip>
-                  </td>
-                  <td class="font-weight-medium">{{ element.name }}</td>
-                  <td class="text-primary font-weight-bold">
-                    {{ Number(element.price).toFixed(2) }}€
-                  </td>
-                  <td class="text-right">
-                    <div class="d-flex justify-end">
-                      <v-btn icon size="x-small" variant="text" color="primary" @click="editItem(element)">
-                        <v-icon>mdi-pencil</v-icon>
-                      </v-btn>
-                      <v-btn icon size="x-small" variant="text" color="primary" @click="triggerImageUpload(element.id)">
-                        <v-icon>mdi-camera</v-icon>
-                      </v-btn>
-                      <v-btn icon="mdi-delete" size="x-small" color="error" variant="text" @click="deleteArticle(element.id)"></v-btn>
-                    </div>
-                  </td>
-                </tr>
-              </template>
-            </draggable>
-          </v-table>
+          <v-data-table
+            :headers="headers"
+            :items="articles"
+            :search="search"
+            :loading="loading"
+            item-value="id"
+            hover
+            class="bg-transparent"
+            :no-data-text="t('common.noData')"
+            v-model:sort-by="sortByTable"
+          >
+            <template #item.image="{ item }">
+              <v-avatar size="36" rounded="lg" class="my-1 border" color="surface-variant">
+                <v-img v-if="item.imageUrl" :src="getImageUrl(item.imageUrl)" cover eager></v-img>
+                <v-icon v-else color="primary" size="small">{{ item.icon || 'mdi-food-apple' }}</v-icon>
+              </v-avatar>
+            </template>
+            <template #item.sortOrder="{ item }">
+              <v-chip size="x-small" label color="grey-lighten-2" class="font-weight-bold text-grey-darken-3">{{ item.sortOrder }}</v-chip>
+            </template>
+            <template #item.sku="{ item }">
+              <span class="text-caption">{{ item.sku }}</span>
+            </template>
+            <template #item.category="{ item }">
+              <v-chip size="x-small" variant="tonal" class="text-uppercase">{{ item.category || 'Keine' }}</v-chip>
+            </template>
+            <template #item.name="{ item }">
+              <span class="font-weight-medium">{{ item.name }}</span>
+            </template>
+            <template #item.price="{ item }">
+              <span class="text-primary font-weight-bold">{{ Number(item.price).toFixed(2) }}€</span>
+            </template>
+            <template #item.actions="{ item }">
+                <div class="d-flex justify-end">
+                <v-btn icon size="x-small" variant="text" color="primary" @click="editItem(item)">
+                  <v-icon>mdi-pencil</v-icon>
+                </v-btn>
+                <v-btn icon size="x-small" variant="text" color="primary" @click="triggerImageUpload(item.id)">
+                  <v-icon>mdi-camera</v-icon>
+                </v-btn>
+                <v-btn icon="mdi-delete" size="x-small" color="error" variant="text" @click="deleteArticle(item.id)"></v-btn>
+              </div>
+            </template>
+          </v-data-table>
           <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
         </v-card>
       </v-col>
@@ -166,7 +122,6 @@
 import { ref, onMounted, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useConfirm } from '../../composables/useConfirm'
-import draggable from 'vuedraggable'
 import { articlesApi, type Article } from '../../api/cash-register'
 import { api } from '../../api/axios'
 
@@ -176,67 +131,17 @@ const articles = ref<Article[]>([])
 const search = ref('')
 const loading = ref(false)
 
-const sortBy = ref('')
-const sortDesc = ref(false)
+const headers = computed(() => [
+  { title: t('articles.image'), key: 'image', sortable: false, width: '60px' },
+  { title: t('articles.sort'), key: 'sortOrder', width: '80px' },
+  { title: t('articles.sku'), key: 'sku' },
+  { title: t('articles.category'), key: 'category' },
+  { title: t('articles.name'), key: 'name' },
+  { title: t('articles.price'), key: 'price' },
+  { title: '', key: 'actions', sortable: false, align: 'end' as const }
+])
 
-const toggleSort = (key: string) => {
-  if (sortBy.value === key) {
-    if (sortDesc.value) {
-      sortBy.value = ''
-      sortDesc.value = false
-    } else {
-      sortDesc.value = true
-    }
-  } else {
-    sortBy.value = key
-    sortDesc.value = false
-  }
-}
-
-const filteredArticles = computed({
-  get: () => {
-    let result = [...articles.value]
-    
-    // Filtering
-    if (search.value) {
-      const s = search.value.toLowerCase()
-      result = result.filter(a => 
-        a.name.toLowerCase().includes(s) || 
-        (a.category && a.category.toLowerCase().includes(s)) ||
-        (a.sku && a.sku.toLowerCase().includes(s))
-      )
-    }
-
-    // Sorting
-    if (sortBy.value) {
-      result.sort((a: any, b: any) => {
-        let valA = a[sortBy.value]
-        let valB = b[sortBy.value]
-        
-        if (sortBy.value === 'price') {
-          valA = Number(valA)
-          valB = Number(valB)
-        } else {
-          valA = String(valA || '').toLowerCase()
-          valB = String(valB || '').toLowerCase()
-        }
-
-        if (valA < valB) return sortDesc.value ? 1 : -1
-        if (valA > valB) return sortDesc.value ? -1 : 1
-        return 0
-      })
-    }
-
-    return result
-  },
-  set: (val) => {
-    // When search or sort is active, we don't want to allow reordering 
-    // because the indexes wouldn't match correctly.
-    if (!search.value && !sortBy.value) {
-      articles.value = val
-    }
-  }
-})
+const sortByTable = ref<any[]>([])
 const categories = computed(() => {
   const cats = articles.value.map(a => a.category).filter((c): c is string => !!c)
   return [...new Set(cats)].sort()
@@ -307,21 +212,6 @@ async function save() {
   saving.value = false
 }
 
-async function onDragEnd() {
-  const updates = articles.value.map((article, index) => {
-    article.sortOrder = index * 10 // Assign smooth increments
-    return { id: article.id, sortOrder: article.sortOrder }
-  })
-  
-  try {
-    await articlesApi.reorder(updates)
-  } catch (e) {
-    console.error('Failed to save sort order', e)
-    alert(t('articles.saveError'))
-    load() // Revert local state on failure
-  }
-}
-
 function triggerImageUpload(id: string) {
   uploadTargetId.value = id
   fileInput.value?.click()
@@ -358,28 +248,4 @@ onMounted(() => load())
 </script>
 
 <style scoped>
-.sortable-header {
-  cursor: pointer;
-  user-select: none;
-  transition: background-color 0.2s ease;
-}
-
-.sortable-header:hover {
-  background-color: rgba(0, 0, 0, 0.03);
-}
-
-.sort-icon {
-  margin-left: 4px;
-  opacity: 0;
-  transition: opacity 0.2s ease, color 0.2s ease;
-}
-
-.sortable-header:hover .sort-icon {
-  opacity: 0.4;
-}
-
-.sort-icon.active {
-  opacity: 1 !important;
-  color: rgb(var(--v-theme-primary)) !important;
-}
 </style>
