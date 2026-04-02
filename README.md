@@ -5,6 +5,8 @@
 
 FRAME is a modern, open-source club management system designed for sports clubs and associations. It streamlines administrative tasks, financial tracking, and member engagement through a clean, intuitive interface.
 
+**Initially conceptualized for a Snooker Club**, the project's name (referencing a 'frame' in play) and signature green aesthetic are a tribute to its origins, though the platform is fully adaptable for associations of any kind.
+
 ![FRAME Teaser](docs/screenshots/teaser.png)
 
 ## 🚀 Key Features
