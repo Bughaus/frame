@@ -8,6 +8,7 @@ export interface Article {
   taxRate: number;
   category?: string;
   icon?: string;
+  sortOrder?: number;
   imageUrl?: string;
   isActive: boolean;
 }
@@ -16,6 +17,7 @@ export const articlesApi = {
   getAll: () => api.get<Article[]>('/cash-register/articles').then(res => res.data),
   create: (data: Partial<Article>) => api.post<Article>('/cash-register/articles', data).then(res => res.data),
   update: (id: string, data: Partial<Article>) => api.put<Article>(`/cash-register/articles/${id}`, data).then(res => res.data),
+  reorder: (items: { id: string, sortOrder: number }[]) => api.post('/cash-register/articles/reorder', items).then(res => res.data),
   remove: (id: string) => api.delete(`/cash-register/articles/${id}`).then(res => res.data)
 }
 

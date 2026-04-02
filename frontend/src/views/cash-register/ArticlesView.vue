@@ -4,29 +4,81 @@
       <v-icon size="x-large" color="primary" class="mr-3">mdi-package-variant</v-icon>
       <h1 class="text-h3 font-weight-bold">Artikelstamm</h1>
       <v-spacer></v-spacer>
-      <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog()">Neuer Artikel</v-btn>
+      <div>
+        <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog()">Neuer Artikel</v-btn>
+      </div>
     </div>
+    
     <v-row>
-      <v-col>
-        <v-card>
-          <v-data-table :headers="headers" :items="articles" :loading="loading" class="elevation-1">
-            <template #item.image="{ item }">
-              <v-avatar size="40" rounded="lg" class="my-1 border" color="surface-variant">
-                <v-img v-if="item.imageUrl" :src="getImageUrl(item.imageUrl)" cover eager></v-img>
-                <v-icon v-else color="primary">{{ item.icon || 'mdi-food-apple' }}</v-icon>
-              </v-avatar>
-            </template>
-            <template #item.price="{ item }">{{ Number(item.price).toFixed(2) }}€</template>
-            <template #item.actions="{ item }">
-              <v-btn icon size="small" variant="text" color="primary" @click="editItem(item)">
-                <v-icon>mdi-pencil</v-icon>
-              </v-btn>
-              <v-btn icon size="small" variant="text" color="primary" @click="triggerImageUpload(item.id)">
-                <v-icon>mdi-camera</v-icon>
-              </v-btn>
-              <v-btn icon="mdi-delete" size="small" color="error" variant="text" @click="deleteItem(item.id)"></v-btn>
-            </template>
-          </v-data-table>
+      <v-col cols="12">
+        <v-card class="elevation-1">
+          <v-text-field
+            v-model="search"
+            prepend-inner-icon="mdi-magnify"
+            label="Suchen..."
+            single-line
+            hide-details
+            class="pa-4"
+          ></v-text-field>
+          <v-table density="compact" hover class="w-100">
+            <thead>
+              <tr>
+                <th style="width: 40px"></th>
+                <th style="width: 60px">Bild</th>
+                <th style="width: 80px">Sort</th>
+                <th>SKU</th>
+                <th>Kategorie</th>
+                <th>Name</th>
+                <th>Preis</th>
+                <th class="text-right">Aktionen</th>
+              </tr>
+            </thead>
+            <draggable
+              v-model="filteredArticles"
+              tag="tbody"
+              handle=".drag-handle"
+              item-key="id"
+              @end="onDragEnd"
+              :disabled="search.length > 0"
+            >
+              <template #item="{ element }">
+                <tr>
+                  <td style="width: 40px">
+                    <v-btn icon="mdi-drag" variant="text" size="small" class="drag-handle" style="cursor: grab" color="grey"></v-btn>
+                  </td>
+                  <td>
+                    <v-avatar size="36" rounded="lg" class="my-1 border" color="surface-variant">
+                      <v-img v-if="element.imageUrl" :src="getImageUrl(element.imageUrl)" cover eager></v-img>
+                      <v-icon v-else color="primary" size="small">{{ element.icon || 'mdi-food-apple' }}</v-icon>
+                    </v-avatar>
+                  </td>
+                  <td style="width: 80px">
+                    <v-chip size="x-small" label color="grey-lighten-3" class="font-weight-bold">{{ element.sortOrder }}</v-chip>
+                  </td>
+                  <td class="text-caption">{{ element.sku }}</td>
+                  <td>
+                    <v-chip size="x-small" variant="tonal" class="text-uppercase">{{ element.category || 'Keine' }}</v-chip>
+                  </td>
+                  <td class="font-weight-medium">{{ element.name }}</td>
+                  <td class="text-primary font-weight-bold">
+                    {{ Number(element.price).toFixed(2) }}€
+                  </td>
+                  <td class="text-right">
+                    <div class="d-flex justify-end">
+                      <v-btn icon size="x-small" variant="text" color="primary" @click="editItem(element)">
+                        <v-icon>mdi-pencil</v-icon>
+                      </v-btn>
+                      <v-btn icon size="x-small" variant="text" color="primary" @click="triggerImageUpload(element.id)">
+                        <v-icon>mdi-camera</v-icon>
+                      </v-btn>
+                      <v-btn icon="mdi-delete" size="x-small" color="error" variant="text" @click="deleteItem(element.id)"></v-btn>
+                    </div>
+                  </td>
+                </tr>
+              </template>
+            </draggable>
+          </v-table>
+          <v-progress-linear v-if="loading" indeterminate color="primary"></v-progress-linear>
         </v-card>
       </v-col>
     </v-row>
@@ -40,7 +92,14 @@
           <v-text-field v-model="editedItem.name" label="Name" variant="outlined" density="compact"></v-text-field>
           <v-text-field v-model="editedItem.sku" label="SKU / Artikelnummer" variant="outlined" density="compact"></v-text-field>
           <v-text-field v-model="editedItem.category" label="Kategorie (z.B. Getränke)" variant="outlined" density="compact"></v-text-field>
-          <v-text-field v-model.number="editedItem.price" type="number" label="Preis (€)" variant="outlined" density="compact"></v-text-field>
+          <v-row dense>
+            <v-col cols="8">
+              <v-text-field v-model.number="editedItem.price" type="number" label="Preis (€)" variant="outlined" density="compact"></v-text-field>
+            </v-col>
+            <v-col cols="4">
+              <v-text-field v-model.number="editedItem.sortOrder" type="number" label="Sortierung" variant="outlined" density="compact" hint="Kleinere Zahl = weiter vorne"></v-text-field>
+            </v-col>
+          </v-row>
           
           <div class="text-subtitle-2 mb-2">Symbol wählen</div>
           <v-slide-group v-model="editedItem.icon" show-arrows class="border rounded-lg pa-2 bg-surface">
@@ -71,21 +130,34 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import draggable from 'vuedraggable'
 import { articlesApi, type Article } from '../../api/cash-register'
 import { api } from '../../api/axios'
 
-const headers: any = [
-  { title: 'Bild', key: 'image', sortable: false, width: '60px' },
-  { title: 'SKU', key: 'sku' },
-  { title: 'Kategorie', key: 'category' },
-  { title: 'Name', key: 'name' },
-  { title: 'Preis', key: 'price' },
-  { title: 'Aktionen', key: 'actions', sortable: false, align: 'end' },
-]
-
 const articles = ref<Article[]>([])
+const search = ref('')
 const loading = ref(false)
+
+const filteredArticles = computed({
+  get: () => {
+    if (!search.value) return articles.value
+    const s = search.value.toLowerCase()
+    return articles.value.filter(a => 
+      a.name.toLowerCase().includes(s) || 
+      (a.category && a.category.toLowerCase().includes(s)) ||
+      (a.sku && a.sku.toLowerCase().includes(s))
+    )
+  },
+  set: (val) => {
+    // When search is active, we don't want to allow reordering 
+    // because the indexes wouldn't match correctly.
+    // Draggable is disabled during search, but v-model needs a setter.
+    if (!search.value) {
+      articles.value = val
+    }
+  }
+})
 
 const dialog = ref(false)
 const saving = ref(false)
@@ -133,6 +205,7 @@ async function save() {
       name: editedItem.value.name,
       category: editedItem.value.category,
       icon: editedItem.value.icon || 'mdi-food-apple',
+      sortOrder: Number(editedItem.value.sortOrder || 0),
       price: Number(editedItem.value.price),
       taxRate: 0
     }
@@ -149,6 +222,21 @@ async function save() {
     alert('Fehler beim Speichern')
   }
   saving.value = false
+}
+
+async function onDragEnd() {
+  const updates = articles.value.map((article, index) => {
+    article.sortOrder = index * 10 // Assign smooth increments
+    return { id: article.id, sortOrder: article.sortOrder }
+  })
+  
+  try {
+    await articlesApi.reorder(updates)
+  } catch (e) {
+    console.error('Failed to save sort order', e)
+    alert('Sortierung konnte nicht gespeichert werden')
+    load() // Revert local state on failure
+  }
 }
 
 function triggerImageUpload(id: string) {

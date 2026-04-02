@@ -57,4 +57,10 @@ export class ArticlesController {
   remove(@Param('id') id: string) {
     return this.articlesService.remove(id);
   }
+  
+  @Post('reorder')
+  @Roles(Role.VORSTAND, Role.MITARBEITER)
+  reorder(@Body() items: { id: string, sortOrder: number }[]) {
+    return this.articlesService.reorder(items);
+  }
 }

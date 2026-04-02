@@ -19,7 +19,7 @@ export class ArticlesService {
   findAll() {
     return this.prisma.article.findMany({
       where: { isActive: true },
-      orderBy: { category: 'asc' },
+      orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }],
     });
   }
 
@@ -42,5 +42,16 @@ export class ArticlesService {
       where: { id },
       data: { isActive: false },
     });
+  }
+
+  async reorder(items: { id: string, sortOrder: number }[]) {
+    return this.prisma.$transaction(
+      items.map(item =>
+        this.prisma.article.update({
+          where: { id: item.id },
+          data: { sortOrder: item.sortOrder },
+        })
+      )
+    );
   }
 }

@@ -27,6 +27,10 @@ export class CreateArticleDto {
   icon?: string;
 
   @IsOptional()
+  @IsNumber()
+  sortOrder?: number;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }
