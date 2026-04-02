@@ -22,16 +22,41 @@
           ></v-text-field>
           <v-table density="compact" hover class="w-100">
             <thead>
-              <tr>
-                <th style="width: 40px"></th>
-                <th style="width: 60px">Bild</th>
-                <th style="width: 80px">Sort</th>
-                <th>SKU</th>
-                <th>Kategorie</th>
-                <th>Name</th>
-                <th>Preis</th>
-                <th class="text-right">Aktionen</th>
-              </tr>
+                <tr>
+                  <th style="width: 40px"></th>
+                  <th style="width: 60px">Bild</th>
+                  <th style="width: 100px" class="sortable-header" @click="toggleSort('sortOrder')">
+                    <div class="d-flex align-center">
+                      <span>Sort</span>
+                      <v-icon :icon="sortBy === 'sortOrder' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'sortOrder' }"></v-icon>
+                    </div>
+                  </th>
+                  <th class="sortable-header" @click="toggleSort('sku')">
+                    <div class="d-flex align-center">
+                      <span>SKU</span>
+                      <v-icon :icon="sortBy === 'sku' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'sku' }"></v-icon>
+                    </div>
+                  </th>
+                  <th class="sortable-header" @click="toggleSort('category')">
+                    <div class="d-flex align-center">
+                      <span>Kategorie</span>
+                      <v-icon :icon="sortBy === 'category' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'category' }"></v-icon>
+                    </div>
+                  </th>
+                  <th class="sortable-header" @click="toggleSort('name')">
+                    <div class="d-flex align-center">
+                      <span>Name</span>
+                      <v-icon :icon="sortBy === 'name' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'name' }"></v-icon>
+                    </div>
+                  </th>
+                  <th class="sortable-header" @click="toggleSort('price')">
+                    <div class="d-flex align-center">
+                      <span>Preis</span>
+                      <v-icon :icon="sortBy === 'price' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'price' }"></v-icon>
+                    </div>
+                  </th>
+                  <th class="text-right">Aktionen</th>
+                </tr>
             </thead>
             <draggable
               v-model="filteredArticles"
@@ -39,12 +64,13 @@
               handle=".drag-handle"
               item-key="id"
               @end="onDragEnd"
-              :disabled="search.length > 0"
+              :disabled="search.length > 0 || sortBy !== ''"
             >
               <template #item="{ element }">
                 <tr>
                   <td style="width: 40px">
-                    <v-btn icon="mdi-drag" variant="text" size="small" class="drag-handle" style="cursor: grab" color="grey"></v-btn>
+                    <v-btn v-if="sortBy === ''" icon="mdi-drag" variant="text" size="small" class="drag-handle" style="cursor: grab" color="grey"></v-btn>
+                    <v-btn v-else icon="mdi-lock-outline" variant="text" size="small" color="grey-lighten-1" disabled></v-btn>
                   </td>
                   <td>
                     <v-avatar size="36" rounded="lg" class="my-1 border" color="surface-variant">
@@ -53,7 +79,7 @@
                     </v-avatar>
                   </td>
                   <td style="width: 80px">
-                    <v-chip size="x-small" label color="grey-lighten-3" class="font-weight-bold">{{ element.sortOrder }}</v-chip>
+                    <v-chip size="x-small" label color="grey-lighten-2" class="font-weight-bold text-grey-darken-3">{{ element.sortOrder }}</v-chip>
                   </td>
                   <td class="text-caption">{{ element.sku }}</td>
                   <td>
@@ -139,21 +165,63 @@ const articles = ref<Article[]>([])
 const search = ref('')
 const loading = ref(false)
 
+const sortBy = ref('')
+const sortDesc = ref(false)
+
+const toggleSort = (key: string) => {
+  if (sortBy.value === key) {
+    if (sortDesc.value) {
+      sortBy.value = ''
+      sortDesc.value = false
+    } else {
+      sortDesc.value = true
+    }
+  } else {
+    sortBy.value = key
+    sortDesc.value = false
+  }
+}
+
 const filteredArticles = computed({
   get: () => {
-    if (!search.value) return articles.value
-    const s = search.value.toLowerCase()
-    return articles.value.filter(a => 
-      a.name.toLowerCase().includes(s) || 
-      (a.category && a.category.toLowerCase().includes(s)) ||
-      (a.sku && a.sku.toLowerCase().includes(s))
-    )
+    let result = [...articles.value]
+    
+    // Filtering
+    if (search.value) {
+      const s = search.value.toLowerCase()
+      result = result.filter(a => 
+        a.name.toLowerCase().includes(s) || 
+        (a.category && a.category.toLowerCase().includes(s)) ||
+        (a.sku && a.sku.toLowerCase().includes(s))
+      )
+    }
+
+    // Sorting
+    if (sortBy.value) {
+      result.sort((a: any, b: any) => {
+        let valA = a[sortBy.value]
+        let valB = b[sortBy.value]
+        
+        if (sortBy.value === 'price') {
+          valA = Number(valA)
+          valB = Number(valB)
+        } else {
+          valA = String(valA || '').toLowerCase()
+          valB = String(valB || '').toLowerCase()
+        }
+
+        if (valA < valB) return sortDesc.value ? 1 : -1
+        if (valA > valB) return sortDesc.value ? -1 : 1
+        return 0
+      })
+    }
+
+    return result
   },
   set: (val) => {
-    // When search is active, we don't want to allow reordering 
+    // When search or sort is active, we don't want to allow reordering 
     // because the indexes wouldn't match correctly.
-    // Draggable is disabled during search, but v-model needs a setter.
-    if (!search.value) {
+    if (!search.value && !sortBy.value) {
       articles.value = val
     }
   }
@@ -273,3 +341,30 @@ async function deleteItem(id: string) {
 
 onMounted(() => load())
 </script>
+
+<style scoped>
+.sortable-header {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.sortable-header:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+.sort-icon {
+  margin-left: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease, color 0.2s ease;
+}
+
+.sortable-header:hover .sort-icon {
+  opacity: 0.4;
+}
+
+.sort-icon.active {
+  opacity: 1 !important;
+  color: rgb(var(--v-theme-primary)) !important;
+}
+</style>
