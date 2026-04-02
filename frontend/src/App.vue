@@ -247,7 +247,10 @@
           <span class="mr-3">Login: {{ authStore.user?.lastLoginAt ? new Date(authStore.user.lastLoginAt).toLocaleString('de-DE') : 'Jetzt' }}</span>
           
           <v-divider vertical class="mx-3"></v-divider>
-          <span class="font-weight-bold">v{{ appVersion }}</span>
+          <div class="d-flex flex-column align-end" style="line-height: 1.2">
+            <span class="font-weight-bold">App: v{{ appVersion }}</span>
+            <span v-if="backendVersion" style="font-size: 0.7rem; opacity: 0.8">API: v{{ backendVersion }}</span>
+          </div>
         </div>
       </div>
     </v-footer>
@@ -285,6 +288,16 @@ declare const __APP_VERSION__: string
 const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.1.0'
 
 const aboutDialog = ref(false)
+const backendVersion = ref<string | null>(null)
+
+async function fetchBackendVersion() {
+  try {
+    const res = await api.get('/version')
+    backendVersion.value = res.data
+  } catch (e) {
+    console.warn('Could not fetch backend version', e)
+  }
+}
 
 const currentThemeIcon = computed(() => {
   if (theme.global.name.value === 'vereinTheme') return 'mdi-weather-sunny'
@@ -356,6 +369,7 @@ async function refreshAllStatus() {
 
 onMounted(() => {
   refreshAllStatus()
+  fetchBackendVersion()
   pollingInterval = setInterval(refreshAllStatus, 60000) // Poll every 1 minute
   
   // Listen for global refresh requests
