@@ -247,5 +247,4 @@ async function deleteArticle(id: string) {
 onMounted(() => load())
 </script>
 
-<style scoped>
-</style>
+
