@@ -1,16 +1,16 @@
 <template>
   <v-container class="fill-height" fluid>
     <v-row align="center" justify="center">
-      <v-col cols="12" sm="8" md="4">
-        <v-card class="elevation-12 rounded-lg py-4">
+      <v-col cols="12" sm="8" md="4" class="text-center">
+        <v-card class="elevation-12 rounded-lg py-4 mb-4">
           <v-card-text class="text-center">
             <v-fade-transition hide-on-leave>
               <!-- RFID SCAN MODE (Default) -->
               <div v-if="loginMode === 'rfid'" key="rfid" class="pa-4">
                 <v-icon size="80" color="primary" class="mb-6">mdi-contactless-payment</v-icon>
-                <h1 class="text-h5 font-weight-bold mb-2">{{ t('auth.scanTitle', 'Chip scannen') }}</h1>
+                <h1 class="text-h5 font-weight-bold mb-2">{{ t('auth.scanTitle') }}</h1>
                 <p class="text-body-1 text-grey-darken-1 mb-8">
-                  {{ t('auth.scanInstruction', 'Bitte halten Sie Ihren RFID-Chip an das Lesegerät, um sich anzumelden.') }}
+                  {{ t('auth.scanInstruction') }}
                 </p>
                 
                 <v-alert v-if="errorMsg" type="error" variant="tonal" class="mb-6" density="compact">
@@ -26,7 +26,7 @@
                   @click="loginMode = 'password'"
                   prepend-icon="mdi-keyboard-outline"
                 >
-                  {{ t('auth.usePassword', 'Login mit Zugangsdaten') }}
+                  {{ t('auth.usePassword') }}
                 </v-btn>
               </div>
 
@@ -42,7 +42,7 @@
                   <v-alert v-if="errorMsg" type="error" class="mb-4" density="compact">{{ errorMsg }}</v-alert>
                   <v-text-field
                     v-model="username"
-                    :label="t('auth.username', 'Benutzername')"
+                    :label="t('auth.username')"
                     prepend-inner-icon="mdi-account"
                     variant="outlined"
                     required
@@ -50,7 +50,7 @@
                   ></v-text-field>
                   <v-text-field
                     v-model="password"
-                    :label="t('auth.password', 'Passwort')"
+                    :label="t('auth.password')"
                     prepend-inner-icon="mdi-lock"
                     type="password"
                     variant="outlined"
@@ -65,7 +65,7 @@
 
                 <div v-if="deviceStore.isAuthorized" class="mt-6 text-center">
                   <v-btn variant="text" color="secondary" size="small" @click="loginMode = 'rfid'" prepend-icon="mdi-contactless-payment">
-                    {{ t('auth.backToScan', 'Zurück zum RFID-Scan') }}
+                    {{ t('auth.backToScan') }}
                   </v-btn>
                 </div>
               </div>
@@ -80,6 +80,10 @@
             color="primary"
           ></v-progress-linear>
         </v-card>
+        
+        <div class="text-caption text-grey-darken-1 font-weight-medium">
+          {{ t('auth.versions', { app: appVersion, api: apiVersion || '...' }) }}
+        </div>
       </v-col>
     </v-row>
   </v-container>
@@ -90,13 +94,17 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useAuthStore } from '../../stores/auth.store'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-
+import { api } from '../../api/axios'
 import { useDeviceStore } from '../../stores/device.store'
 
 const authStore = useAuthStore()
 const deviceStore = useDeviceStore()
 const router = useRouter()
 const { t } = useI18n()
+
+declare const __APP_VERSION__: string
+const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.1.0'
+const apiVersion = ref('')
 
 const username = ref('')
 const password = ref('')
@@ -113,7 +121,7 @@ async function handleLogin() {
     if (success) {
       router.push('/dashboard')
     } else {
-      errorMsg.value = t('auth.invalidLogin', 'Ungültige Anmeldedaten.')
+      errorMsg.value = t('auth.invalidLogin')
     }
     
     isLoading.value = false
@@ -179,11 +187,19 @@ async function submitRfid(token: string) {
   if (success) {
     router.push('/dashboard')
   } else {
-    errorMsg.value = t('auth.invalidRfid', 'RFID Token ungültig.')
+    errorMsg.value = t('auth.invalidRfid')
   }
   isLoading.value = false
 }
 
-onMounted(() => window.addEventListener('keydown', handleKeyDown, true))
+onMounted(async () => {
+  window.addEventListener('keydown', handleKeyDown, true)
+  try {
+    const res = await api.get('/version')
+    apiVersion.value = res.data
+  } catch (e) {
+    apiVersion.value = 'unknown'
+  }
+})
 onUnmounted(() => window.removeEventListener('keydown', handleKeyDown, true))
 </script>

@@ -2,10 +2,12 @@
   <v-container fluid>
     <div class="d-flex align-center mb-6">
       <v-icon size="x-large" color="primary" class="mr-3">mdi-package-variant</v-icon>
-      <h1 class="text-h3 font-weight-bold">Artikelstamm</h1>
+      <h1 class="text-h4 font-weight-bold ml-1">{{ t('articles.title') }}</h1>
       <v-spacer></v-spacer>
       <div>
-        <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog()">Neuer Artikel</v-btn>
+        <v-btn color="primary" prepend-icon="mdi-plus" @click="openDialog()" class="mr-1">
+          {{ t('articles.newArticle') }}
+        </v-btn>
       </div>
     </div>
     
@@ -15,47 +17,51 @@
           <v-text-field
             v-model="search"
             prepend-inner-icon="mdi-magnify"
-            label="Suchen..."
+            :label="t('common.search')"
             single-line
             hide-details
-            class="pa-4"
+            density="compact"
+            variant="solo"
+            class="mb-4 mx-1 elevation-0 border flex-shrink-0"
+            style="max-width: 400px"
+            clearable
           ></v-text-field>
           <v-table density="compact" hover class="w-100">
             <thead>
                 <tr>
                   <th style="width: 40px"></th>
-                  <th style="width: 60px">Bild</th>
+                  <th style="width: 60px">{{ t('articles.image') }}</th>
                   <th style="width: 100px" class="sortable-header" @click="toggleSort('sortOrder')">
                     <div class="d-flex align-center">
-                      <span>Sort</span>
+                      <span>{{ t('articles.sort') }}</span>
                       <v-icon :icon="sortBy === 'sortOrder' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'sortOrder' }"></v-icon>
                     </div>
                   </th>
                   <th class="sortable-header" @click="toggleSort('sku')">
                     <div class="d-flex align-center">
-                      <span>SKU</span>
+                      <span>{{ t('articles.sku') }}</span>
                       <v-icon :icon="sortBy === 'sku' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'sku' }"></v-icon>
                     </div>
                   </th>
                   <th class="sortable-header" @click="toggleSort('category')">
                     <div class="d-flex align-center">
-                      <span>Kategorie</span>
+                      <span>{{ t('articles.category') }}</span>
                       <v-icon :icon="sortBy === 'category' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'category' }"></v-icon>
                     </div>
                   </th>
                   <th class="sortable-header" @click="toggleSort('name')">
                     <div class="d-flex align-center">
-                      <span>Name</span>
+                      <span>{{ t('articles.name') }}</span>
                       <v-icon :icon="sortBy === 'name' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'name' }"></v-icon>
                     </div>
                   </th>
                   <th class="sortable-header" @click="toggleSort('price')">
                     <div class="d-flex align-center">
-                      <span>Preis</span>
+                      <span>{{ t('articles.price') }}</span>
                       <v-icon :icon="sortBy === 'price' ? (sortDesc ? 'mdi-arrow-down' : 'mdi-arrow-up') : 'mdi-arrow-up'" size="x-small" class="sort-icon" :class="{ 'active': sortBy === 'price' }"></v-icon>
                     </div>
                   </th>
-                  <th class="text-right">Aktionen</th>
+                  <th class="text-right">{{ t('common.actions') }}</th>
                 </tr>
             </thead>
             <draggable
@@ -97,7 +103,7 @@
                       <v-btn icon size="x-small" variant="text" color="primary" @click="triggerImageUpload(element.id)">
                         <v-icon>mdi-camera</v-icon>
                       </v-btn>
-                      <v-btn icon="mdi-delete" size="x-small" color="error" variant="text" @click="deleteItem(element.id)"></v-btn>
+                      <v-btn icon="mdi-delete" size="x-small" color="error" variant="text" @click="deleteArticle(element.id)"></v-btn>
                     </div>
                   </td>
                 </tr>
@@ -111,23 +117,24 @@
 
     <v-dialog v-model="dialog" max-width="500px">
       <v-card>
-        <v-card-title class="bg-primary text-white">
-          {{ editedItem.id ? 'Artikel bearbeiten' : 'Neuer Artikel' }}
+        <v-card-title class="pa-4 bg-primary text-white d-flex align-center">
+          <v-icon class="mr-2">{{ editedItem.id ? 'mdi-pencil' : 'mdi-plus' }}</v-icon>
+          <span class="text-h5">{{ editedItem.id ? t('articles.editArticle') : t('articles.newArticle') }}</span>
         </v-card-title>
         <v-card-text class="pt-6">
-          <v-text-field v-model="editedItem.name" label="Name" variant="outlined" density="compact"></v-text-field>
-          <v-text-field v-model="editedItem.sku" label="SKU / Artikelnummer" variant="outlined" density="compact"></v-text-field>
-          <v-text-field v-model="editedItem.category" label="Kategorie (z.B. Getränke)" variant="outlined" density="compact"></v-text-field>
+          <v-text-field v-model="editedItem.sku" :label="t('articles.sku')" variant="outlined" density="compact"></v-text-field>
+          <v-text-field v-model="editedItem.name" :label="t('articles.name')" variant="outlined" density="compact"></v-text-field>
+          <v-combobox v-model="editedItem.category" :items="categories" :label="t('articles.category')" variant="outlined" density="compact"></v-combobox>
           <v-row dense>
             <v-col cols="8">
-              <v-text-field v-model.number="editedItem.price" type="number" label="Preis (€)" variant="outlined" density="compact"></v-text-field>
+              <v-text-field v-model.number="editedItem.price" type="number" :label="`${t('articles.price')} (€)`" variant="outlined" density="compact"></v-text-field>
             </v-col>
             <v-col cols="4">
-              <v-text-field v-model.number="editedItem.sortOrder" type="number" label="Sortierung" variant="outlined" density="compact" hint="Kleinere Zahl = weiter vorne"></v-text-field>
+              <v-text-field v-model.number="editedItem.sortOrder" type="number" :label="t('articles.sort')" variant="outlined" density="compact"></v-text-field>
             </v-col>
           </v-row>
           
-          <div class="text-subtitle-2 mb-2">Symbol wählen</div>
+          <div class="text-subtitle-2 mb-2">{{ t('articles.chooseIcon') }}</div>
           <v-slide-group v-model="editedItem.icon" show-arrows class="border rounded-lg pa-2 bg-surface">
             <v-slide-group-item v-for="icon in flatIcons" :key="icon" :value="icon" v-slot="{ isSelected, toggle }">
               <v-btn
@@ -142,10 +149,10 @@
             </v-slide-group-item>
           </v-slide-group>
         </v-card-text>
-        <v-card-actions>
+        <v-card-actions class="pa-4 bg-grey-lighten-4">
           <v-spacer></v-spacer>
-          <v-btn variant="text" @click="dialog = false">Abbrechen</v-btn>
-          <v-btn color="primary" variant="flat" @click="save" :loading="saving">Speichern</v-btn>
+          <v-btn variant="text" @click="dialog = false" class="mr-2">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="primary" variant="elevated" @click="save" :loading="saving" prepend-icon="mdi-check" class="px-6">{{ t('common.save') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -157,10 +164,14 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useConfirm } from '../../composables/useConfirm'
 import draggable from 'vuedraggable'
 import { articlesApi, type Article } from '../../api/cash-register'
 import { api } from '../../api/axios'
 
+const { t } = useI18n()
+const { confirm } = useConfirm()
 const articles = ref<Article[]>([])
 const search = ref('')
 const loading = ref(false)
@@ -226,6 +237,10 @@ const filteredArticles = computed({
     }
   }
 })
+const categories = computed(() => {
+  const cats = articles.value.map(a => a.category).filter((c): c is string => !!c)
+  return [...new Set(cats)].sort()
+})
 
 const dialog = ref(false)
 const saving = ref(false)
@@ -287,7 +302,7 @@ async function save() {
     dialog.value = false
     load()
   } catch (e) {
-    alert('Fehler beim Speichern')
+    alert(t('articles.saveError'))
   }
   saving.value = false
 }
@@ -302,7 +317,7 @@ async function onDragEnd() {
     await articlesApi.reorder(updates)
   } catch (e) {
     console.error('Failed to save sort order', e)
-    alert('Sortierung konnte nicht gespeichert werden')
+    alert(t('articles.saveError'))
     load() // Revert local state on failure
   }
 }
@@ -325,15 +340,15 @@ async function handleImageUpload(e: Event) {
     })
     await load()
   } catch (err) {
-    alert('Fehler beim Hochladen des Bildes.')
+    alert(t('articles.uploadError'))
   }
   
   // Reset file input
   if (fileInput.value) fileInput.value.value = ''
 }
 
-async function deleteItem(id: string) {
-  if (confirm('Artikel wirklich entfernen?')) {
+async function deleteArticle(id: string) {
+  if (await confirm(t('common.confirm'), t('articles.deleteConfirm'))) {
     await articlesApi.remove(id)
     load()
   }

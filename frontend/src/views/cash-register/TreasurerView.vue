@@ -2,47 +2,47 @@
   <v-container fluid>
     <div class="d-flex align-center mb-6">
       <v-icon size="x-large" color="primary" class="mr-3">mdi-bank</v-icon>
-      <h1 class="text-h3 font-weight-bold">Vereinskasse</h1>
+      <h1 class="text-h3 font-weight-bold">{{ t('treasurer.title') }}</h1>
     </div>
     <v-row>
       <v-col cols="12" md="7">
         <v-card class="mb-4">
           <v-card-title class="bg-primary text-white d-flex justify-space-between align-center">
-            Rechnungen
-            <v-btn color="white" variant="tonal" size="small" @click="generateInvoices" :loading="generating">Rechnungen für alle Salden erzeugen</v-btn>
+            {{ t('treasurer.invoices') }}
+            <v-btn color="white" variant="tonal" size="small" @click="generateInvoices" :loading="generating">{{ t('treasurer.generateInvoices') }}</v-btn>
           </v-card-title>
           <v-card-text class="pt-4">
-            <v-data-table :headers="invoiceHeaders" :items="invoices" :loading="loading" class="elevation-1">
+            <v-data-table :headers="invoiceHeaders" :items="invoices" :loading="loading" class="elevation-1" :no-data-text="t('common.noData')">
               <template #item.totalGross="{ item }">{{ Number(item.totalGross).toFixed(2) }}€</template>
               <template #item.status="{ item }">
                 <v-chip :color="item.status === 'PAID' ? 'success' : item.status === 'CANCELLED' ? 'grey' : 'warning'" size="small">{{ item.status }}</v-chip>
               </template>
               <template #item.actions="{ item }">
                 <v-btn icon="mdi-file-pdf-box" size="small" color="error" variant="text" @click="downloadPdf(item.id)"></v-btn>
-                <v-btn v-if="item.status !== 'PAID'" icon="mdi-check-circle" size="small" color="success" variant="text" title="Als Bezahlt markieren" @click="markAsPaid(item.id)"></v-btn>
+                <v-btn v-if="item.status !== 'PAID'" icon="mdi-check-circle" size="small" color="success" variant="text" :title="t('treasurer.markPaid')" @click="markAsPaid(item.id)"></v-btn>
               </template>
             </v-data-table>
           </v-card-text>
           <v-card-actions class="bg-surface-variant pa-4">
-            <v-btn color="success" block variant="flat" size="large" @click="exportSepa" :disabled="!invoices.some(i => i.status === 'DRAFT')">SEPA-XML für Entwürfe exportieren</v-btn>
+            <v-btn color="success" block variant="flat" size="large" @click="exportSepa" :disabled="!invoices.some(i => i.status === 'DRAFT')">{{ t('treasurer.exportSepa') }}</v-btn>
           </v-card-actions>
         </v-card>
       </v-col>
       <v-col cols="12" md="5">
         <v-card>
           <v-card-title class="bg-primary text-white d-flex justify-space-between align-center">
-            Eigenbelege
-            <v-btn color="white" variant="tonal" size="small" @click="eigenbelegDialog = true">Neuer Beleg</v-btn>
+            {{ t('treasurer.internalRecords') }}
+            <v-btn color="white" variant="tonal" size="small" @click="eigenbelegDialog = true">{{ t('treasurer.newRecord') }}</v-btn>
           </v-card-title>
           <v-card-text class="pt-4">
-            <v-data-table :headers="eigenbelegHeaders" :items="eigenbelege" :loading="loading" class="elevation-1" density="compact">
+            <v-data-table :headers="eigenbelegHeaders" :items="eigenbelege" :loading="loading" class="elevation-1" density="compact" :no-data-text="t('common.noData')">
               <template #item.amount="{ item }">
                 <v-chip :color="item.type === 'INCOME' ? 'success' : 'error'" size="small">
                   {{ item.type === 'INCOME' ? '+' : '-' }}{{ Number(item.amount).toFixed(2) }}€
                 </v-chip>
               </template>
               <template #item.date="{ item }">
-                {{ new Date(item.date).toLocaleDateString('de-DE') }}
+                {{ new Date(item.date).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US') }}
               </template>
               <template #item.actions="{ item }">
                  <v-btn v-if="item.attachments && item.attachments.length > 0" icon="mdi-paperclip" size="small" variant="text"></v-btn>
@@ -57,19 +57,19 @@
     <v-row>
       <v-col cols="12">
         <v-card class="mb-4">
-          <v-card-title class="bg-primary text-white">Buchungen (Globales Logbuch)</v-card-title>
+          <v-card-title class="bg-primary text-white">{{ t('treasurer.globalLog') }}</v-card-title>
           <v-card-text class="pt-4">
-            <v-data-table :headers="bookingHeaders" :items="bookings" :loading="loading" class="elevation-1" density="compact">
+            <v-data-table :headers="bookingHeaders" :items="bookings" :loading="loading" class="elevation-1" density="compact" :no-data-text="t('common.noData')">
               <template #item.amount="{ item }">
                 <v-chip :color="item.amount > 0 ? 'success' : 'error'" size="small">
                   {{ item.amount > 0 ? '+' : '' }}{{ (Number(item.amount)).toFixed(2) }}€
                 </v-chip>
               </template>
               <template #item.date="{ item }">
-                {{ new Date(item.date).toLocaleString('de-DE') }}
+                {{ new Date(item.date).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US') }}
               </template>
               <template #item.type="{ item }">
-                {{ item.type }} <v-chip v-if="item.isGuest" size="x-small" color="blue">Gast</v-chip>
+                {{ item.type }} <v-chip v-if="item.isGuest" size="x-small" color="blue">{{ t('pos.guests') }}</v-chip>
               </template>
             </v-data-table>
           </v-card-text>
@@ -80,14 +80,14 @@
     <!-- Eigenbeleg Form -->
     <v-dialog v-model="eigenbelegDialog" max-width="500px">
       <v-card>
-        <v-card-title class="bg-primary text-white">Neuer Eigenbeleg</v-card-title>
+        <v-card-title class="bg-primary text-white">{{ t('treasurer.newRecord') }}</v-card-title>
         <v-card-text class="pt-6">
-          <v-select v-model="ebForm.type" :items="[{title:'Einnahme',value:'INCOME'},{title:'Ausgabe',value:'EXPENSE'}]" label="Art" variant="outlined" density="compact"></v-select>
-          <v-text-field v-model="ebForm.category" label="Kategorie (z.B. Reinigung, Spende)" variant="outlined" density="compact"></v-text-field>
-          <v-text-field v-model.number="ebForm.amount" type="number" step="0.01" label="Betrag (€)" variant="outlined" density="compact"></v-text-field>
-          <v-text-field v-model="ebForm.description" label="Zweck / Beschreibung" variant="outlined" density="compact"></v-text-field>
-          <v-text-field v-model="ebForm.date" type="date" label="Belegdatum" variant="outlined" density="compact"></v-text-field>
-          <v-file-input v-model="ebForm.file" label="Kopie / Scan (PDF/JPG)" variant="outlined" density="compact" prepend-icon="mdi-camera" accept="image/*,application/pdf"></v-file-input>
+          <v-select v-model="ebForm.type" :items="[{title:t('treasurer.income'),value:'INCOME'},{title:t('treasurer.expense'),value:'EXPENSE'}]" :label="t('accounting.type')" variant="outlined" density="compact"></v-select>
+          <v-text-field v-model="ebForm.category" :label="t('treasurer.categoryHint')" variant="outlined" density="compact"></v-text-field>
+          <v-text-field v-model.number="ebForm.amount" type="number" step="0.01" :label="t('finance.amount') + ' (€)'" variant="outlined" density="compact"></v-text-field>
+          <v-text-field v-model="ebForm.description" :label="t('treasurer.purpose')" variant="outlined" density="compact"></v-text-field>
+          <v-text-field v-model="ebForm.date" type="date" :label="t('treasurer.recordDate')" variant="outlined" density="compact"></v-text-field>
+          <v-file-input v-model="ebForm.file" :label="t('treasurer.fileUpload')" variant="outlined" density="compact" prepend-icon="mdi-camera" accept="image/*,application/pdf"></v-file-input>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -101,9 +101,14 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../../api/axios'
 import { cashRegisterApi } from '../../api/cash-register'
+import { useConfirm } from '../../composables/useConfirm'
+
+const { t, locale } = useI18n()
+const { confirm } = useConfirm()
 
 const invoices = ref<any[]>([])
 const eigenbelege = ref<any[]>([])
@@ -111,29 +116,29 @@ const bookings = ref<any[]>([])
 const loading = ref(false)
 const generating = ref(false)
 
-const invoiceHeaders: any = [
-  { title: 'Nr', key: 'invoiceNumber' },
-  { title: 'Mitglied', key: 'account.member.lastName' },
-  { title: 'Betrag', key: 'totalGross' },
-  { title: 'Status', key: 'status' },
-  { title: 'PDF', key: 'actions', sortable: false, align: 'end' },
-]
+const invoiceHeaders = computed(() => [
+  { title: t('treasurer.nr'), key: 'invoiceNumber' },
+  { title: t('inbox.member'), key: 'account.member.lastName' },
+  { title: t('finance.amount'), key: 'totalGross' },
+  { title: t('common.status'), key: 'status' },
+  { title: t('treasurer.pdf'), key: 'actions', sortable: false, align: 'end' as const },
+])
 
-const eigenbelegHeaders: any = [
-  { title: 'Datum', key: 'date' },
-  { title: 'Typ / Kategorie', key: 'category' },
-  { title: 'Zweck', key: 'description' },
-  { title: 'Betrag', key: 'amount' },
-  { title: 'Beleg', key: 'actions', align: 'end' },
-]
+const eigenbelegHeaders = computed(() => [
+  { title: t('hours.date'), key: 'date' },
+  { title: t('treasurer.bookingType'), key: 'category' },
+  { title: t('treasurer.purpose'), key: 'description' },
+  { title: t('finance.amount'), key: 'amount' },
+  { title: t('treasurer.internalRecords'), key: 'actions', align: 'end' as const },
+])
 
-const bookingHeaders: any = [
-  { title: 'Zeitpunkt', key: 'date' },
-  { title: 'Quelle / Konto', key: 'source' },
-  { title: 'Details', key: 'description' },
-  { title: 'Buchungsart', key: 'type' },
-  { title: 'Betrag', key: 'amount', align: 'end' },
-]
+const bookingHeaders = computed(() => [
+  { title: t('hours.date'), key: 'date' },
+  { title: t('treasurer.source'), key: 'source' },
+  { title: t('hours.details'), key: 'description' },
+  { title: t('treasurer.bookingType'), key: 'type' },
+  { title: t('finance.amount'), key: 'amount', align: 'end' as const },
+])
 
 const eigenbelegDialog = ref(false)
 const saving = ref(false)
@@ -163,10 +168,10 @@ async function generateInvoices() {
       await api.post('/cash-register/invoices', { accountIds: validAccs, dueDate: targetDate.toISOString() })
       await load()
     } else {
-      alert('Keine negativen / offenen Salden gefunden.')
+      alert(t('treasurer.noBalances'))
     }
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Fehler beim Generieren der Rechnungen.')
+    alert(e.response?.data?.message || t('treasurer.genError'))
   }
   generating.value = false
 }
@@ -182,19 +187,19 @@ function exportSepa() {
     .join(',')
     
   if (!ids) {
-    alert('Keine Entwürfe zum Exportieren gefunden.')
+    alert(t('treasurer.noDrafts'))
     return
   }
   cashRegisterApi.downloadSepaExport(ids)
 }
 
 async function markAsPaid(id: string) {
-  if (!confirm('Rechnung als BEZAHLT markieren?')) return
+  if (!await confirm(t('common.confirm'), t('treasurer.confirmPaid'))) return
   try {
     await api.patch(`/cash-register/invoices/${id}/status`, { status: 'PAID' })
     await load()
   } catch(e) {
-    alert('Fehler beim Aktualisieren der Rechnung.')
+    alert(t('common.error'))
   }
 }
 
@@ -220,7 +225,7 @@ async function submitEigenbeleg() {
     ebForm.value = { type: 'EXPENSE', amount: 0, category: '', description: '', date: new Date().toISOString().split('T')[0], file: null };
     load();
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Upload fehlgeschlagen');
+    alert(e.response?.data?.message || t('treasurer.uploadError'));
   }
   saving.value = false;
 }

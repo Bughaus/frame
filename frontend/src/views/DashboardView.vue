@@ -5,17 +5,17 @@
       <!-- Left side: Balance & Cart -->
       <v-col cols="12" md="4" class="d-flex flex-column fill-height pb-2">
         <v-card class="mb-4 elevation-2 flex-shrink-0">
-          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">Mein Kontostand</v-card-title>
+          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">{{ t('dashboard.balance') }}</v-card-title>
           <v-card-text class="pt-4 pb-2 text-center">
             <div class="text-h4 font-weight-black" :class="Number(account.balance) < 0 ? 'text-error' : 'text-success'">
               {{ Number(account.balance).toFixed(2) }}€
             </div>
-            <div class="text-caption text-grey mt-1">Guthaben / Offener Deckel</div>
+            <div class="text-caption text-grey mt-1">{{ t('dashboard.balanceHint') }}</div>
           </v-card-text>
         </v-card>
 
         <v-card class="elevation-2 d-flex flex-column flex-grow-1 overflow-hidden mb-2">
-          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">Mein Warenkorb</v-card-title>
+          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">{{ t('dashboard.cart') }}</v-card-title>
           <v-list density="compact" class="pt-0 pb-0 bg-transparent flex-grow-1 overflow-y-scroll">
             <v-list-item v-for="(item, i) in cart" :key="i">
               <v-list-item-title class="font-weight-bold text-body-2">{{ item.article.name }}</v-list-item-title>
@@ -28,19 +28,19 @@
               </template>
             </v-list-item>
             <v-list-item v-if="cart.length === 0">
-              <v-alert type="info" variant="tonal" class="mt-2 text-center py-2" density="compact">Warenkorb leer.</v-alert>
+              <v-alert type="info" variant="tonal" class="mt-2 text-center py-2" density="compact">{{ t('dashboard.cartEmpty') }}</v-alert>
             </v-list-item>
           </v-list>
           
           <v-divider></v-divider>
           <div class="bg-surface-variant flex-shrink-0" style="height: 104px;">
             <v-card-text class="d-flex justify-space-between align-center text-h6 font-weight-bold py-2">
-              <span>Total:</span>
+              <span>{{ t('dashboard.total') }}</span>
               <span>{{ cartTotal.toFixed(2) }}€</span>
             </v-card-text>
             <v-card-actions class="pa-2 pt-0">
               <v-btn color="success" block size="large" variant="flat" elevation="2" @click="checkout" :loading="checkingOut" :disabled="cart.length === 0">
-                Jetzt Buchen
+                {{ t('dashboard.checkout') }}
               </v-btn>
             </v-card-actions>
           </div>
@@ -51,9 +51,9 @@
       <v-col cols="12" md="8" class="d-flex flex-column fill-height pb-2">
         <v-card class="d-flex flex-column fill-height mb-0 elevation-2">
           <v-card-title class="bg-surface-variant d-flex align-center flex-wrap py-1 flex-shrink-0">
-            <span class="text-subtitle-1 font-weight-bold mr-4">Artikel Auswahl</span>
+            <span class="text-subtitle-1 font-weight-bold mr-4">{{ t('articles.select') }}</span>
             <v-chip-group v-model="selectedCategory" selected-class="text-primary" filter mandatory size="small">
-              <v-chip v-for="cat in categories" :key="cat" :value="cat" variant="tonal" size="small" class="mr-1">{{ cat }}</v-chip>
+              <v-chip v-for="cat in categories" :key="cat" :value="cat" variant="tonal" size="small" class="mr-1">{{ cat === 'Alle' ? t('common.all') : cat }}</v-chip>
             </v-chip-group>
           </v-card-title>
           <v-card-text class="pt-4 overflow-y-scroll flex-grow-1 px-4" style="scrollbar-gutter: stable;">
@@ -77,18 +77,21 @@
     <v-row v-else>
       <v-col cols="12" class="text-center mt-12">
         <v-progress-circular indeterminate color="primary" size="64"></v-progress-circular>
-        <div class="mt-4 text-h6 text-grey">Lade Kontodaten...</div>
+        <div class="mt-4 text-h6 text-grey">{{ t('dashboard.loading') }}</div>
       </v-col>
     </v-row>
 
-    <v-snackbar v-model="snackbar" color="success" timeout="3000">Feedback erfolgreich gesendet!</v-snackbar>
+    <v-snackbar v-model="snackbar" color="success" timeout="3000">{{ t('dashboard.checkoutSuccess') }}</v-snackbar>
   </v-container>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { articlesApi, cashRegisterApi, type Article } from '../api/cash-register'
 import { api } from '../api/axios'
+
+const { t } = useI18n()
 
 const account = ref<any>(null)
 const articles = ref<Article[]>([])
@@ -155,7 +158,7 @@ async function checkout() {
     cart.value = []
     await load() // Refresh balance
   } catch(e: any) {
-    alert(e.response?.data?.message || 'Fehler bei der Buchung')
+    alert(e.response?.data?.message || t('dashboard.checkoutError'))
   }
   checkingOut.value = false
 }

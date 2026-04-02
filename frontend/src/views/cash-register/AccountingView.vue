@@ -2,7 +2,7 @@
   <v-container fluid>
     <div class="d-flex align-center mb-6">
       <v-icon size="x-large" color="primary" class="mr-3">mdi-file-document-outline</v-icon>
-      <h1 class="text-h3 font-weight-bold">Buchungen</h1>
+      <h1 class="text-h3 font-weight-bold">{{ t('accounting.title') }}</h1>
     </div>
 
     <v-row>
@@ -11,7 +11,7 @@
         <v-card class="elevation-2">
           <v-card-title class="bg-primary text-white d-flex align-center">
             <v-icon class="mr-2">mdi-plus-circle</v-icon>
-            Neuer Eigenbeleg / Buchung
+            {{ t('accounting.newRecord') }}
           </v-card-title>
           <v-card-text class="pt-6">
             <v-form @submit.prevent="submitEigenbeleg">
@@ -19,8 +19,8 @@
                 <v-col cols="12" sm="6">
                   <v-select 
                     v-model="ebForm.type" 
-                    :items="[{title:'Einnahme',value:'INCOME'},{title:'Ausgabe',value:'EXPENSE'}]" 
-                    label="Art der Buchung" 
+                    :items="[{title:t('treasurer.income'),value:'INCOME'},{title:t('treasurer.expense'),value:'EXPENSE'}]" 
+                    :label="t('accounting.type')" 
                     variant="outlined"
                   ></v-select>
                 </v-col>
@@ -29,7 +29,7 @@
                     v-model.number="ebForm.amount" 
                     type="number" 
                     step="0.01" 
-                    label="Betrag (€)" 
+                    :label="t('finance.amount') + ' (€)'" 
                     variant="outlined" 
                     prefix="€"
                   ></v-text-field>
@@ -38,13 +38,13 @@
 
               <v-text-field 
                 v-model="ebForm.category" 
-                label="Kategorie (z.B. Reinigung, Spende, Material)" 
+                :label="t('accounting.categoryHint')" 
                 variant="outlined"
               ></v-text-field>
               
               <v-textarea 
                 v-model="ebForm.description" 
-                label="Zweck / Beschreibung" 
+                :label="t('treasurer.purpose')" 
                 variant="outlined" 
                 rows="2"
               ></v-textarea>
@@ -54,14 +54,14 @@
                   <v-text-field 
                     v-model="ebForm.date" 
                     type="date" 
-                    label="Belegdatum" 
+                    :label="t('treasurer.recordDate')" 
                     variant="outlined"
                   ></v-text-field>
                 </v-col>
                 <v-col cols="12" sm="6">
                   <v-file-input 
                     v-model="ebForm.file" 
-                    label="Beleg-Upload (PDF/Bild)" 
+                    :label="t('treasurer.fileUpload')" 
                     variant="outlined" 
                     prepend-icon="mdi-camera" 
                     accept="image/*,application/pdf"
@@ -77,7 +77,7 @@
                 class="mt-2" 
                 :loading="saving"
               >
-                Buchung Speichern
+                {{ t('common.save') }}
               </v-btn>
             </v-form>
           </v-card-text>
@@ -88,7 +88,7 @@
       <v-col cols="12" md="6">
         <v-card class="elevation-2">
           <v-card-title class="bg-surface-variant d-flex justify-space-between align-center">
-            Letzte Einträge
+            {{ t('accounting.recent') }}
             <v-btn icon="mdi-refresh" variant="text" size="small" @click="load"></v-btn>
           </v-card-title>
           <v-card-text class="pa-0">
@@ -96,7 +96,8 @@
               :headers="headers" 
               :items="eigenbelege" 
               :loading="loading" 
-              density="compact"
+              class="pb-2"
+              :no-data-text="t('common.noData')"
             >
               <template #item.amount="{ item }">
                 <v-chip :color="item.type === 'INCOME' ? 'success' : 'error'" size="small" label>
@@ -104,7 +105,7 @@
                 </v-chip>
               </template>
               <template #item.date="{ item }">
-                {{ new Date(item.date).toLocaleDateString('de-DE') }}
+                {{ new Date(item.date).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US') }}
               </template>
               <template #item.category="{ item }">
                 <div class="font-weight-medium">{{ item.category }}</div>
@@ -123,8 +124,11 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../../api/axios'
+
+const { t, locale } = useI18n()
 
 const eigenbelege = ref<any[]>([])
 const loading = ref(false)
@@ -134,11 +138,11 @@ const snackbar = ref(false)
 const snackbarText = ref('')
 const snackbarColor = ref('success')
 
-const headers: any = [
-  { title: 'Datum', key: 'date' },
-  { title: 'Kategorie / Zweck', key: 'category' },
-  { title: 'Betrag', key: 'amount', align: 'end' },
-]
+const headers = computed(() => [
+  { title: t('hours.date'), key: 'date' },
+  { title: t('treasurer.bookingType'), key: 'category' },
+  { title: t('finance.amount'), key: 'amount', align: 'end' as const },
+])
 
 const ebForm = ref<any>({ 
   type: 'EXPENSE', 
@@ -162,7 +166,7 @@ async function load() {
 
 async function submitEigenbeleg() {
   if (ebForm.value.amount <= 0) {
-    snackbarText.value = 'Bitte einen gültigen Betrag eingeben.'
+    snackbarText.value = t('accounting.invalidAmount')
     snackbarColor.value = 'warning'
     snackbar.value = true
     return
@@ -184,7 +188,7 @@ async function submitEigenbeleg() {
       headers: { 'Content-Type': 'multipart/form-data' }
     })
     
-    snackbarText.value = 'Buchung erfolgreich gespeichert.'
+    snackbarText.value = t('accounting.saveSuccess')
     snackbarColor.value = 'success'
     snackbar.value = true
     
@@ -200,7 +204,7 @@ async function submitEigenbeleg() {
     
     load()
   } catch (e: any) {
-    snackbarText.value = e.response?.data?.message || 'Speichern fehlgeschlagen'
+    snackbarText.value = e.response?.data?.message || t('accounting.saveError')
     snackbarColor.value = 'error'
     snackbar.value = true
   }

@@ -27,20 +27,20 @@
       <!-- Mein Bereich - Centered -->
       <div class="d-flex align-end h-100 mr-2">
         <v-btn v-if="authStore.isAuthenticated" to="/dashboard" prepend-icon="mdi-silverware" variant="flat" class="nav-tab ml-1">
-          Verzehr
+          {{ t('nav.dashboard') }}
           <v-tooltip activator="parent" location="bottom">Persönliches Verzehr-Dashboard</v-tooltip>
         </v-btn>
         <v-btn v-if="authStore.isAuthenticated && authStore.hasRole(['VORSTAND', 'MITARBEITER'])" to="/pos" prepend-icon="mdi-cash-register" variant="flat" class="nav-tab ml-1">
-          Event Kasse
-          <v-tooltip activator="parent" location="bottom">Kassenoberfläche für Events & Verkauf</v-tooltip>
+          {{ t('nav.pos') }}
+          <v-tooltip activator="parent" location="bottom">{{ t('nav.posHint') }}</v-tooltip>
         </v-btn>
         <v-btn v-if="authStore.isAuthenticated" to="/hours" prepend-icon="mdi-clock-outline" variant="flat" class="nav-tab ml-1">
-          Stunden
-          <v-tooltip activator="parent" location="bottom">Meine Arbeitsstunden erfassen</v-tooltip>
+          {{ t('nav.hours') }}
+          <v-tooltip activator="parent" location="bottom">{{ t('nav.hoursHint') }}</v-tooltip>
         </v-btn>
         <v-btn v-if="authStore.isAuthenticated" to="/my-finance" prepend-icon="mdi-wallet-outline" variant="flat" class="nav-tab ml-1">
-          Finanzen
-          <v-tooltip activator="parent" location="bottom">Mein Kontostand & Abrechnungen</v-tooltip>
+          {{ t('nav.finance') }}
+          <v-tooltip activator="parent" location="bottom">{{ t('nav.financeHint') }}</v-tooltip>
         </v-btn>
 
         <!-- Verwaltung (Submenu) as a Tab -->
@@ -64,23 +64,23 @@
                   <v-icon>mdi-cog-outline</v-icon>
                 </v-badge>
               </template>
-              Verwaltung
-              <v-tooltip activator="parent" location="bottom">Administration & Verwaltung</v-tooltip>
+              {{ t('nav.admin') }}
+              <v-tooltip activator="parent" location="bottom">{{ t('nav.adminHint') }}</v-tooltip>
             </v-btn>
           </template>
           <v-list density="compact" nav min-width="220">
-            <v-list-item to="/members" prepend-icon="mdi-account-group" title="Mitglieder"></v-list-item>
-            <v-list-item to="/articles" prepend-icon="mdi-package-variant" title="Artikelstamm"></v-list-item>
+            <v-list-item to="/members" prepend-icon="mdi-account-group" :title="t('nav.members')"></v-list-item>
+            <v-list-item to="/articles" prepend-icon="mdi-package-variant" :title="t('nav.articles')"></v-list-item>
             
             <template v-if="authStore.hasRole(['VORSTAND'])">
               <v-divider class="my-1"></v-divider>
-              <v-list-item to="/treasurer" prepend-icon="mdi-bank" title="Vereinskasse"></v-list-item>
-              <v-list-item to="/accounting" prepend-icon="mdi-playlist-plus" title="Buchungen"></v-list-item>
-              <v-list-item to="/admin/devices" prepend-icon="mdi-tablet-cellphone" title="Geräteverwaltung"></v-list-item>
-              <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/hours-management" prepend-icon="mdi-calendar-check" title="Events & Arbeitsdienste"></v-list-item>
+              <v-list-item to="/treasurer" prepend-icon="mdi-bank" :title="t('nav.clubCash')"></v-list-item>
+              <v-list-item to="/accounting" prepend-icon="mdi-playlist-plus" :title="t('nav.accounting')"></v-list-item>
+              <v-list-item to="/admin/devices" prepend-icon="mdi-tablet-cellphone" :title="t('nav.devices')"></v-list-item>
+              <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/hours-management" prepend-icon="mdi-calendar-check" :title="t('nav.events')"></v-list-item>
               <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/inbox" prepend-icon="mdi-inbox-multiple-outline">
                 <template #title>
-                  Inbox
+                  {{ t('nav.inbox') }}
                   <v-chip v-if="inboxCount?.total" size="x-small" color="error" class="ml-1" variant="flat">{{ inboxCount.total }}</v-chip>
                 </template>
               </v-list-item>
@@ -102,6 +102,7 @@
             overlap
             offset-x="8"
             offset-y="8"
+            class="mr-4"
           >
             <v-btn
               v-bind="props"
@@ -117,7 +118,7 @@
         </template>
         
         <v-list density="compact" nav min-width="200">
-          <v-list-item to="/profile" prepend-icon="mdi-account-outline" title="Mein Profil">
+          <v-list-item to="/profile" prepend-icon="mdi-account-outline" :title="t('ui.profile')">
             <template #append>
               <v-badge
                 v-if="authStore.inboxStatus?.openFeedback"
@@ -127,8 +128,8 @@
               ></v-badge>
             </template>
           </v-list-item>
-          <v-list-item v-if="!deviceStore.isAuthorized" to="/activate-device" prepend-icon="mdi-tablet-cellphone" title="Gerät autorisieren" color="primary"></v-list-item>
-          <v-list-item to="/help" prepend-icon="mdi-help-circle-outline" title="Hilfe & Anleitungen"></v-list-item>
+          <v-list-item v-if="!deviceStore.isAuthorized" to="/activate-device" prepend-icon="mdi-tablet-cellphone" :title="t('ui.authorizeDevice')" color="primary"></v-list-item>
+          <v-list-item to="/help" prepend-icon="mdi-help-circle-outline" :title="t('ui.help')"></v-list-item>
           <v-divider class="my-1"></v-divider>
           
           <v-list-subheader class="text-overline px-4">Design</v-list-subheader>
@@ -147,11 +148,31 @@
           <v-list-item 
             @click="setTheme('highContrastTheme')" 
             prepend-icon="mdi-contrast-circle" 
-            title="Barrierefrei (Hochkontrast)"
+            :title="t('ui.themeContrast')"
             :active="theme.global.name.value === 'highContrastTheme'"
           ></v-list-item>
           <v-divider class="my-1"></v-divider>
-          <v-list-item @click="logout" prepend-icon="mdi-logout" title="Abmelden" color="error"></v-list-item>
+          <v-list-subheader class="text-overline px-4">{{ t('ui.language') }}</v-list-subheader>
+          <v-list-item 
+            @click="setLanguage('de')" 
+            :active="locale === 'de'"
+            title="Deutsch"
+          >
+            <template #prepend>
+              <span class="mr-2" style="font-size: 1.2rem; line-height: 1">🇩🇪</span>
+            </template>
+          </v-list-item>
+          <v-list-item 
+            @click="setLanguage('en')" 
+            :active="locale === 'en'"
+            title="English"
+          >
+            <template #prepend>
+              <span class="mr-2" style="font-size: 1.2rem; line-height: 1">🇬🇧</span>
+            </template>
+          </v-list-item>
+          <v-divider class="my-1"></v-divider>
+          <v-list-item @click="logout" prepend-icon="mdi-logout" :title="t('ui.logout')" color="error"></v-list-item>
         </v-list>
       </v-menu>
       
@@ -165,29 +186,65 @@
             class="ml-2"
           >
             <v-icon>{{ currentThemeIcon }}</v-icon>
-            <v-tooltip activator="parent" location="bottom">Design anpassen</v-tooltip>
+            <v-tooltip activator="parent" location="bottom">{{ t('ui.design') }}</v-tooltip>
           </v-btn>
         </template>
         <v-list density="compact" nav min-width="200">
-          <v-list-subheader class="text-overline px-4">Design</v-list-subheader>
+          <v-list-subheader class="text-overline px-4">{{ t('ui.design') }}</v-list-subheader>
           <v-list-item 
             @click="setTheme('vereinTheme')" 
             prepend-icon="mdi-weather-sunny" 
-            title="Helles Design"
+            :title="t('ui.themeLight')"
             :active="theme.global.name.value === 'vereinTheme'"
           ></v-list-item>
           <v-list-item 
             @click="setTheme('vereinDarkTheme')" 
             prepend-icon="mdi-weather-night" 
-            title="Dunkles Design"
+            :title="t('ui.themeDark')"
             :active="theme.global.name.value === 'vereinDarkTheme'"
           ></v-list-item>
           <v-list-item 
             @click="setTheme('highContrastTheme')" 
             prepend-icon="mdi-contrast-circle" 
-            title="Barrierefrei (Hochkontrast)"
+            :title="t('ui.themeContrast')"
             :active="theme.global.name.value === 'highContrastTheme'"
           ></v-list-item>
+        </v-list>
+      </v-menu>
+
+      <!-- Universal Language Selector (Guest Only) -->
+      <v-menu v-if="!authStore.isAuthenticated" offset="5">
+        <template #activator="{ props }">
+          <v-btn
+            v-bind="props"
+            variant="text"
+            class="ml-2 mr-4"
+            min-width="48"
+          >
+            <span style="font-size: 1.4rem">{{ currentLocaleFlag }}</span>
+            <v-tooltip activator="parent" location="bottom">{{ t('ui.language') }}</v-tooltip>
+          </v-btn>
+        </template>
+        <v-list density="compact" nav min-width="150">
+          <v-list-subheader class="text-overline px-4">{{ t('ui.language') }}</v-list-subheader>
+          <v-list-item 
+            @click="setLanguage('de')" 
+            :active="locale === 'de'"
+            title="Deutsch"
+          >
+            <template #prepend>
+              <span class="mr-2" style="font-size: 1.2rem">🇩🇪</span>
+            </template>
+          </v-list-item>
+          <v-list-item 
+            @click="setLanguage('en')" 
+            :active="locale === 'en'"
+            title="English"
+          >
+            <template #prepend>
+              <span class="mr-2" style="font-size: 1.2rem">🇬🇧</span>
+            </template>
+          </v-list-item>
         </v-list>
       </v-menu>
     </v-app-bar>
@@ -196,6 +253,7 @@
       <router-view></router-view>
       <RfidEmulator v-if="isDev && rfidEmulatorEnabled" />
       <AboutDialog v-model="aboutDialog" />
+      <GlobalConfirmDialog />
     </v-main>
 
     <v-footer app border class="bg-surface py-1 px-4 text-caption text-grey">
@@ -215,7 +273,7 @@
             prepend-icon="mdi-shield-check"
             class="font-weight-bold"
           >
-            Autorisiertes Club-Gerät: {{ deviceStore.deviceName }}
+            {{ t('ui.deviceAuthorized') }}: {{ deviceStore.deviceName }}
           </v-chip>
           <v-chip
             v-else-if="deviceStore.isBootstrapMode"
@@ -226,7 +284,7 @@
             class="font-weight-bold"
             to="/admin/devices"
           >
-            System-Bootstrap-Modus (Aktion erforderlich)
+            {{ t('ui.deviceBootstrap') }}
           </v-chip>
           <v-chip
             v-else
@@ -236,7 +294,7 @@
             prepend-icon="mdi-shield-off-outline"
             class="font-weight-bold"
           >
-            Nicht autorisiertes Gerät
+            {{ t('ui.deviceUnauthorized') }}
           </v-chip>
         </div>
         <div v-if="authStore.isAuthenticated" class="d-flex align-center">
@@ -244,7 +302,7 @@
           <span class="mr-3">{{ userFullName }}</span>
           
           <v-icon size="small" class="mr-1">mdi-clock-outline</v-icon>
-          <span class="mr-3">Login: {{ authStore.user?.lastLoginAt ? new Date(authStore.user.lastLoginAt).toLocaleString('de-DE') : 'Jetzt' }}</span>
+          <span class="mr-3">Login: {{ authStore.user?.lastLoginAt ? new Date(authStore.user.lastLoginAt).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US') : 'Jetzt' }}</span>
           
           <v-divider vertical class="mx-3"></v-divider>
           <div class="d-flex flex-column align-end" style="line-height: 1.2">
@@ -264,8 +322,12 @@ import { useAuthStore } from './stores/auth.store'
 import { useDeviceStore } from './stores/device.store'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from './api/axios'
+import { useI18n } from 'vue-i18n'
 import RfidEmulator from './components/dev/RfidEmulator.vue'
 import AboutDialog from './components/AboutDialog.vue'
+import GlobalConfirmDialog from './components/GlobalConfirmDialog.vue'
+
+const { t, locale } = useI18n()
 
 const theme = useTheme()
 const authStore = useAuthStore()
@@ -305,6 +367,10 @@ const currentThemeIcon = computed(() => {
   return 'mdi-contrast-circle'
 })
 
+const currentLocaleFlag = computed(() => {
+  return locale.value === 'de' ? '🇩🇪' : '🇬🇧'
+})
+
 const userFullName = computed(() => {
   const u = authStore.user
   if (u?.firstName && u?.lastName) return `${u.firstName} ${u.lastName}`
@@ -324,6 +390,11 @@ onMounted(() => {
 function setTheme(name: string) {
   theme.global.name.value = name
   localStorage.setItem('theme-mode', name)
+}
+
+function setLanguage(lang: string) {
+  locale.value = lang
+  localStorage.setItem('lang', lang)
 }
 
 const logout = () => {

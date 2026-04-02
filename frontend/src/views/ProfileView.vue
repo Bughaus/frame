@@ -2,44 +2,44 @@
   <v-container fluid>
     <div class="d-flex align-center mb-6">
       <v-icon size="x-large" color="primary" class="mr-3">mdi-account-circle</v-icon>
-      <h1 class="text-h3 font-weight-bold">Mein Profil</h1>
+      <h1 class="text-h3 font-weight-bold">{{ t('profile.title') }}</h1>
     </div>
     
     <v-row>
       <!-- Left Column: Profile Details & Password -->
       <v-col cols="12" md="4">
         <v-card class="mb-4">
-          <v-card-title class="bg-primary text-white">Mein Profil</v-card-title>
+          <v-card-title class="bg-primary text-white">{{ t('profile.title') }}</v-card-title>
           <v-card-text class="pt-4" v-if="member">
             <v-list density="compact">
               <v-list-item>
-                <v-list-item-title>Mitgliedsnummer</v-list-item-title>
+                <v-list-item-title>{{ t('profile.memberNumber') }}</v-list-item-title>
                 <v-list-item-subtitle>{{ member.memberNumber }}</v-list-item-subtitle>
               </v-list-item>
               <v-list-item>
-                <v-list-item-title>Name</v-list-item-title>
+                <v-list-item-title>{{ t('profile.name') }}</v-list-item-title>
                 <v-list-item-subtitle>{{ member.firstName }} {{ member.lastName }}</v-list-item-subtitle>
               </v-list-item>
               <v-list-item>
-                <v-list-item-title>E-Mail</v-list-item-title>
+                <v-list-item-title>{{ t('profile.email') }}</v-list-item-title>
                 <v-list-item-subtitle>{{ member.email }}</v-list-item-subtitle>
               </v-list-item>
               <v-list-item>
-                <v-list-item-title>Telefon</v-list-item-title>
+                <v-list-item-title>{{ t('profile.phone') }}</v-list-item-title>
                 <v-list-item-subtitle>{{ member.phone || '-' }}</v-list-item-subtitle>
               </v-list-item>
               <v-list-item>
-                <v-list-item-title>Adresse</v-list-item-title>
+                <v-list-item-title>{{ t('profile.address') }}</v-list-item-title>
                 <v-list-item-subtitle>{{ member.street || '-' }}, {{ member.postalCode || '' }} {{ member.city || '' }}</v-list-item-subtitle>
               </v-list-item>
               <v-list-item>
-                <v-list-item-title>Status</v-list-item-title>
+                <v-list-item-title>{{ t('profile.status') }}</v-list-item-title>
                 <v-list-item-subtitle>
-                  <v-chip :color="member.status === 'ACTIVE' ? 'success' : 'grey'" size="small">{{ member.status }}</v-chip>
+                  <v-chip :color="member.status === 'ACTIVE' ? 'success' : 'grey'" size="small">{{ member.status === 'ACTIVE' ? t('members.active') : t('members.inactive') }}</v-chip>
                 </v-list-item-subtitle>
               </v-list-item>
               <v-list-item>
-                <v-list-item-title>Benutzername</v-list-item-title>
+                <v-list-item-title>{{ t('profile.username') }}</v-list-item-title>
                 <v-list-item-subtitle class="font-weight-bold text-primary">{{ member.user?.username }}</v-list-item-subtitle>
               </v-list-item>
             </v-list>
@@ -47,33 +47,33 @@
         </v-card>
 
         <v-card>
-          <v-card-title class="bg-surface-variant">Passwort ändern</v-card-title>
+          <v-card-title class="bg-surface-variant">{{ t('profile.changePassword') }}</v-card-title>
           <v-card-text class="pt-4">
             <v-alert v-if="pwMsg" :type="pwSuccess ? 'success' : 'error'" class="mb-4" density="compact">{{ pwMsg }}</v-alert>
-            <v-text-field v-model="pwForm.oldPassword" type="password" label="Altes Passwort" variant="outlined" density="compact"></v-text-field>
-            <v-text-field v-model="pwForm.newPassword" type="password" label="Neues Passwort" variant="outlined" density="compact"></v-text-field>
+            <v-text-field v-model="pwForm.oldPassword" type="password" :label="t('profile.oldPassword')" variant="outlined" density="compact"></v-text-field>
+            <v-text-field v-model="pwForm.newPassword" type="password" :label="t('profile.newPassword')" variant="outlined" density="compact"></v-text-field>
           </v-card-text>
           <v-card-actions>
             <v-spacer></v-spacer>
-            <v-btn color="primary" @click="changePassword" :loading="pwLoading">Passwort speichern</v-btn>
+            <v-btn color="primary" @click="changePassword" :loading="pwLoading">{{ t('profile.savePassword') }}</v-btn>
           </v-card-actions>
         </v-card>
       </v-col>
 
       <!-- Right Column: Requests & Feedback -->
       <v-col cols="12" md="8">
-        <!-- Change Requests -->
-        <v-card class="mb-4">
-          <v-card-title class="bg-surface-variant d-flex justify-space-between align-center px-4">
-            <span>Meine Änderungsanträge</span>
-            <v-btn size="small" color="accent" variant="flat" @click="changeDialog = true" prepend-icon="mdi-pencil">Beantragen</v-btn>
-          </v-card-title>
-          <v-data-table :headers="requestHeaders" :items="changeRequests" density="compact" class="elevation-0">
+      <!-- Change Requests -->
+      <v-card class="mb-4">
+        <v-card-title class="bg-surface-variant d-flex justify-space-between align-center px-4">
+          <span>{{ t('profile.myRequests') }}</span>
+          <v-btn size="small" color="accent" variant="flat" @click="changeDialog = true" prepend-icon="mdi-pencil">{{ t('profile.request') }}</v-btn>
+        </v-card-title>
+          <v-data-table :headers="requestHeaders" :items="changeRequests" density="compact" class="bg-surface" :no-data-text="t('common.noData')">
             <template #item.status="{ item }">
               <v-chip :color="item.status === 'APPROVED' ? 'success' : item.status === 'REJECTED' ? 'error' : 'warning'" size="x-small">{{ item.status }}</v-chip>
             </template>
             <template #item.createdAt="{ item }">
-              {{ new Date(item.createdAt).toLocaleDateString('de-DE') }}
+              {{ new Date(item.createdAt).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US') }}
             </template>
           </v-data-table>
         </v-card>
@@ -81,8 +81,8 @@
         <!-- Feedback & Queries -->
         <v-card>
           <v-card-title class="bg-surface-variant d-flex justify-space-between align-center px-4">
-            <span>Feedback & Anfragen</span>
-            <v-btn size="small" color="primary" variant="flat" @click="feedbackDialog = true" prepend-icon="mdi-message-plus">Neue Nachricht</v-btn>
+            <span>{{ t('profile.feedback') }}</span>
+            <v-btn size="small" color="primary" variant="flat" @click="feedbackDialog = true" prepend-icon="mdi-message-plus">{{ t('profile.newMessage') }}</v-btn>
           </v-card-title>
           <v-card-text class="pt-4">
             <v-expansion-panels v-if="feedbacks.length > 0" variant="accordion" class="border">
@@ -96,17 +96,17 @@
                   </div>
                 </v-expansion-panel-title>
                 <v-expansion-panel-text>
-                  <div class="text-caption text-grey mb-2">{{ new Date(fb.createdAt).toLocaleString('de-DE') }}</div>
+                  <div class="text-caption text-grey mb-2">{{ new Date(fb.createdAt).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US') }}</div>
                   <div class="bg-grey-lighten-4 pa-3 rounded mb-3 text-body-2">{{ fb.message }}</div>
                   
                   <!-- Replies -->
                   <div v-if="fb.replies && fb.replies.length > 0">
-                    <div class="text-caption font-weight-bold mb-1">Antworten:</div>
+                    <div class="text-caption font-weight-bold mb-1">{{ t('profile.replies') }}</div>
                     <div v-for="reply in fb.replies.filter((r: any) => !r.isInternal)" :key="reply.id" 
                          class="mb-2 pa-2 rounded bg-blue-lighten-5 border-s-lg" style="border-left-width: 4px; border-left-color: #2196F3">
                       <div class="d-flex justify-space-between text-caption mb-1">
-                        <span class="font-weight-bold">Verein</span>
-                        <span>{{ new Date(reply.createdAt).toLocaleDateString('de-DE') }}</span>
+                        <span class="font-weight-bold">{{ t('profile.club') }}</span>
+                        <span>{{ new Date(reply.createdAt).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US') }}</span>
                       </div>
                       <div class="text-caption">{{ reply.message }}</div>
                     </div>
@@ -115,7 +115,7 @@
               </v-expansion-panel>
             </v-expansion-panels>
             <div v-else class="text-center py-8 text-grey">
-              Keine Anfragen vorhanden.
+              {{ t('profile.noRequests') }}
             </div>
           </v-card-text>
         </v-card>
@@ -125,20 +125,20 @@
     <!-- Change Request Dialog -->
     <v-dialog v-model="changeDialog" max-width="500px">
       <v-card>
-        <v-card-title class="bg-primary text-white">Datenänderung beantragen</v-card-title>
+        <v-card-title class="bg-primary text-white">{{ t('profile.requestChange') }}</v-card-title>
         <v-card-text class="pt-6">
           <v-alert type="info" variant="tonal" class="mb-4" density="compact">
-            Deine Änderung wird an den Vorstand gesendet und muss genehmigt werden.
+            {{ t('profile.requestHint') }}
           </v-alert>
-          <v-select v-model="changeForm.field" :items="editableFields" label="Welches Feld?" variant="outlined" density="compact"></v-select>
-          <v-text-field v-model="changeForm.oldValue" label="Aktueller Wert" variant="outlined" density="compact" readonly></v-text-field>
-          <v-text-field v-model="changeForm.newValue" label="Neuer Wert" variant="outlined" density="compact"></v-text-field>
-          <v-text-field v-model="changeForm.reason" label="Begründung (optional)" variant="outlined" density="compact"></v-text-field>
+          <v-select v-model="changeForm.field" :items="editableFields" :label="t('profile.whichField')" variant="outlined" density="compact"></v-select>
+          <v-text-field v-model="changeForm.oldValue" :label="t('profile.currentValue')" variant="outlined" density="compact" readonly></v-text-field>
+          <v-text-field v-model="changeForm.newValue" :label="t('profile.newValue')" variant="outlined" density="compact"></v-text-field>
+          <v-text-field v-model="changeForm.reason" :label="t('profile.reason')" variant="outlined" density="compact"></v-text-field>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn variant="text" @click="changeDialog = false">Abbrechen</v-btn>
-          <v-btn color="primary" @click="submitChangeRequest" :loading="submitting">Absenden</v-btn>
+          <v-btn variant="text" @click="changeDialog = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="primary" @click="submitChangeRequest" :loading="submitting">{{ t('profile.submit') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -146,27 +146,27 @@
     <!-- Feedback Dialog -->
     <v-dialog v-model="feedbackDialog" max-width="500px">
       <v-card>
-        <v-card-title class="bg-primary text-white">Neue Anfrage / Feedback</v-card-title>
+        <v-card-title class="bg-primary text-white">{{ t('profile.newFeedbackTitle') }}</v-card-title>
         <v-card-text class="pt-6">
           <v-select
             v-model="feedbackForm.category"
             :items="[
-              { title: 'Frage', value: 'QUESTION' },
-              { title: 'Feedback', value: 'FEEDBACK' },
-              { title: 'Beschwerde', value: 'COMPLAINT' },
-              { title: 'Sonstiges', value: 'OTHER' }
+              { title: t('profile.question'), value: 'QUESTION' },
+              { title: t('profile.feedback'), value: 'FEEDBACK' },
+              { title: t('profile.complaint'), value: 'COMPLAINT' },
+              { title: t('profile.other'), value: 'OTHER' }
             ]"
-            label="Kategorie"
+            :label="t('profile.category')"
             variant="outlined"
             density="compact"
           ></v-select>
-          <v-text-field v-model="feedbackForm.subject" label="Betreff" variant="outlined" density="compact"></v-text-field>
-          <v-textarea v-model="feedbackForm.message" label="Deine Nachricht" variant="outlined" rows="4" density="compact"></v-textarea>
+          <v-text-field v-model="feedbackForm.subject" :label="t('profile.subject')" variant="outlined" density="compact"></v-text-field>
+          <v-textarea v-model="feedbackForm.message" :label="t('profile.message')" variant="outlined" rows="4" density="compact"></v-textarea>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn variant="text" @click="feedbackDialog = false">Abbrechen</v-btn>
-          <v-btn color="primary" @click="submitFeedback" :loading="sendingFeedback">Absenden</v-btn>
+          <v-btn variant="text" @click="feedbackDialog = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="primary" @click="submitFeedback" :loading="sendingFeedback">{{ t('profile.submit') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -193,27 +193,30 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { api } from '../api/axios'
+
+const { t, locale } = useI18n()
 
 const member = ref<any>(null)
 const changeRequests = ref<any[]>([])
 const feedbacks = ref<any[]>([])
 
-const requestHeaders: any = [
-  { title: 'Feld', key: 'field' },
-  { title: 'Wert (Neu)', key: 'newValue' },
-  { title: 'Status', key: 'status' },
-  { title: 'Datum', key: 'createdAt' },
-]
+const requestHeaders = computed(() => [
+  { title: t('profile.field'), key: 'field' },
+  { title: t('profile.newValue'), key: 'newValue' },
+  { title: t('common.status'), key: 'status' },
+  { title: t('profile.date'), key: 'createdAt' },
+])
 
-const editableFields = [
-  { title: 'E-Mail', value: 'email' },
-  { title: 'Telefon', value: 'phone' },
-  { title: 'Straße', value: 'street' },
-  { title: 'PLZ', value: 'postalCode' },
-  { title: 'Ort', value: 'city' },
-]
+const editableFields = computed(() => [
+  { title: t('profile.email'), value: 'email' },
+  { title: t('profile.phone'), value: 'phone' },
+  { title: t('members.street'), value: 'street' },
+  { title: t('members.postalCode'), value: 'postalCode' },
+  { title: t('members.city'), value: 'city' },
+])
 
 const changeDialog = ref(false)
 const changeForm = ref({ field: '', oldValue: '', newValue: '', reason: '' })
@@ -262,7 +265,7 @@ async function submitChangeRequest() {
     changeForm.value = { field: '', oldValue: '', newValue: '', reason: '' }
     await loadProfile()
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Fehler beim Absenden.')
+    alert(e.response?.data?.message || t('profile.feedbackError'))
   }
   submitting.value = false
 }
@@ -276,7 +279,7 @@ async function submitFeedback() {
     feedbackForm.value = { category: 'FEEDBACK', subject: '', message: '' }
     await loadProfile()
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Feedback konnte nicht gesendet werden.')
+    alert(e.response?.data?.message || t('profile.feedbackError'))
   }
   sendingFeedback.value = false
 }
@@ -292,7 +295,7 @@ async function changePassword() {
   pwMsg.value = ''
   try {
     await api.patch('/users/me/password', pwForm.value)
-    pwMsg.value = 'Passwort erfolgreich geändert!'
+    pwMsg.value = t('profile.pwSuccess')
     pwSuccess.value = true
     pwForm.value = { oldPassword: '', newPassword: '' }
   } catch (e: any) {
@@ -314,9 +317,9 @@ function getStatusColor(status: string) {
 
 function getStatusText(status: string) {
   switch (status) {
-    case 'OPEN': return 'Offen'
-    case 'ANSWERED': return 'Beantwortet'
-    case 'CLOSED': return 'Erledigt'
+    case 'OPEN': return t('common.open')
+    case 'ANSWERED': return t('members.answered')
+    case 'CLOSED': return t('common.closed')
     default: return status
   }
 }

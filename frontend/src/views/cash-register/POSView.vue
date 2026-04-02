@@ -5,12 +5,12 @@
       <!-- Left side: Select Member/Account & Cart -->
       <v-col cols="12" md="4" class="d-flex flex-column fill-height pb-2">
         <v-btn-toggle v-model="checkoutMode" mandatory color="primary" class="w-100 mb-4 flex-shrink-0" density="compact">
-          <v-btn value="MEMBER" class="flex-grow-1">Mitglieder</v-btn>
-          <v-btn value="GUEST" class="flex-grow-1">Gäste</v-btn>
+          <v-btn value="MEMBER" class="flex-grow-1">{{ t('pos.members') }}</v-btn>
+          <v-btn value="GUEST" class="flex-grow-1">{{ t('pos.guests') }}</v-btn>
         </v-btn-toggle>
 
         <v-card class="mb-4 flex-shrink-0">
-          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">1. {{ checkoutMode === 'MEMBER' ? 'Konto' : 'Gast-Slot' }} wählen</v-card-title>
+          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">{{ t('pos.step1') }}</v-card-title>
           <v-card-text class="pt-4 pb-2">
             <v-autocomplete
               v-if="checkoutMode === 'MEMBER'"
@@ -18,7 +18,7 @@
               :items="accountOptions"
               item-title="title"
               item-value="id"
-              label="Mitglied suchen..."
+              :label="t('pos.searchMember')"
               variant="outlined"
               density="compact"
               prepend-inner-icon="mdi-account-search"
@@ -31,7 +31,7 @@
               :items="guestOptions"
               item-title="title"
               item-value="id"
-              label="Gast-Slot wählen..."
+              :label="t('pos.selectSlot')"
               variant="outlined"
               density="compact"
               prepend-inner-icon="mdi-human-greeting"
@@ -41,7 +41,7 @@
                 <v-list-item v-bind="props" :title="item.title">
                   <template #append>
                     <v-chip size="x-small" :color="item.raw.isActive ? 'success' : 'warning'" variant="flat">
-                      {{ item.raw.isActive ? 'Frei' : 'Belegt' }}
+                      {{ item.raw.isActive ? t('pos.free') : t('pos.occupied') }}
                     </v-chip>
                   </template>
                 </v-list-item>
@@ -52,7 +52,7 @@
             <div v-if="checkoutMode === 'GUEST' && selectedSlot" class="mt-2 pa-2 border-sm rounded-lg bg-surface-variant">
               <v-text-field
                 v-model="guestDisplayName"
-                label="Gast Name / Info"
+                :label="t('pos.guestName')"
                 variant="outlined"
                 density="compact"
                 hide-details
@@ -62,7 +62,7 @@
               ></v-text-field>
               
               <div class="d-flex justify-space-between align-center">
-                <span class="text-caption text-medium-emphasis">Aktueller Deckel:</span>
+                <span class="text-caption text-medium-emphasis">{{ t('pos.currentTab') }}</span>
                 <span class="text-subtitle-1 font-weight-bold" :class="selectedSlot.balance > 0 ? 'text-primary' : ''">
                   {{ (Number(selectedSlot.balance) || 0).toFixed(2) }}€
                 </span>
@@ -70,7 +70,7 @@
 
               <!-- Itemized Details for Guest -->
               <div v-if="openTabItems.length > 0" class="mt-2 pt-2 border-t">
-                <div class="text-caption font-weight-bold mb-1 ml-1">Details:</div>
+                <div class="text-caption font-weight-bold mb-1 ml-1">{{ t('pos.details') }}</div>
                 <div class="overflow-y-auto pr-1" style="max-height: 100px;">
                   <div v-for="item in openTabItems" :key="item.name" class="d-flex justify-space-between text-caption px-1">
                     <span>{{ item.qty }}x {{ item.name }}</span>
@@ -83,7 +83,7 @@
             <!-- Member Account Detail Summary -->
             <div v-if="checkoutMode === 'MEMBER' && selectedAccount" class="mt-2 pa-2 border-sm rounded-lg bg-surface-variant">
               <div class="d-flex justify-space-between align-center">
-                <span class="text-caption text-medium-emphasis">Kontostand (Unfakturiert):</span>
+                <span class="text-caption text-medium-emphasis">{{ t('pos.openItems') }}</span>
                 <span class="text-subtitle-1 font-weight-bold" :class="Number(selectedAccount.balance) < 0 ? 'text-error' : 'text-success'">
                   {{ (Number(selectedAccount.balance) || 0).toFixed(2) }}€
                 </span>
@@ -91,7 +91,7 @@
               
               <!-- Itemized Details for Member -->
               <div v-if="openTabItems.length > 0" class="mt-2 pt-2 border-t">
-                <div class="text-caption font-weight-bold mb-1 ml-1">Offene Posten:</div>
+                <div class="text-caption font-weight-bold mb-1 ml-1">{{ t('pos.details') }}</div>
                 <div class="overflow-y-auto pr-1" style="max-height: 100px;">
                   <div v-for="item in openTabItems" :key="item.name" class="d-flex justify-space-between text-caption px-1">
                     <span>{{ item.qty }}x {{ item.name }}</span>
@@ -104,7 +104,7 @@
         </v-card>
         
         <v-card class="d-flex flex-column flex-grow-1 overflow-hidden mb-2">
-          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">2. Warenkorb</v-card-title>
+          <v-card-title class="bg-primary text-white py-2 text-subtitle-1">{{ t('pos.step2') }}</v-card-title>
           <v-list density="compact" class="pt-0 pb-0 flex-grow-1 overflow-y-scroll">
             <v-list-item v-for="(item, i) in cart" :key="i">
               <v-list-item-title class="font-weight-bold text-body-2">{{ item.article.name }}</v-list-item-title>
@@ -118,19 +118,19 @@
             </v-list-item>
             <v-list-item v-if="cart.length === 0">
               <v-alert type="info" variant="tonal" class="mt-2 text-center py-2" density="compact">
-                {{ (!(selectedAccountId || selectedSlotId)) ? 'Konto wählen...' : 'Warenkorb leer.' }}
+                {{ (!(selectedAccountId || selectedSlotId)) ? t('dashboard.loading') : t('dashboard.cartEmpty') }}
               </v-alert>
             </v-list-item>
           </v-list>
           <v-divider></v-divider>
           <div class="bg-surface-variant flex-shrink-0" style="height: 160px;">
             <v-card-text class="d-flex justify-space-between text-subtitle-1 font-weight-bold py-2 mb-1">
-              <span>Summe:</span>
+              <span>{{ t('pos.total') }}</span>
               <span>{{ cartTotal.toFixed(2) }}€</span>
             </v-card-text>
             <v-card-actions class="pa-2 pt-0 flex-column">
               <v-btn color="success" block size="large" variant="flat" elevation="2" @click="triggerCheckout" :loading="checkingOut" :disabled="cart.length === 0" class="mb-2">
-                Kaufen
+                {{ t('pos.buy') }}
               </v-btn>
               <v-btn 
                 v-if="checkoutMode === 'GUEST' && selectedSlot && !selectedSlot.isActive" 
@@ -140,7 +140,7 @@
                 variant="tonal"
                 @click="openAbrechnenDialog"
               >
-                Gast Abrechnen
+                {{ t('pos.settle') }}
               </v-btn>
             </v-card-actions>
           </div>
@@ -151,9 +151,9 @@
       <v-col cols="12" md="8" class="d-flex flex-column fill-height pb-2">
         <v-card class="d-flex flex-column fill-height mb-0">
           <v-card-title class="bg-surface-variant d-flex align-center flex-wrap py-1 flex-shrink-0">
-            <span class="text-subtitle-1 font-weight-bold mr-4">Artikel Auswahl</span>
+            <span class="text-subtitle-1 font-weight-bold mr-4">{{ t('articles.select') }}</span>
             <v-chip-group v-model="selectedCategory" selected-class="text-primary" filter mandatory size="small">
-              <v-chip v-for="cat in categories" :key="cat" :value="cat" variant="tonal" size="small" class="mr-1">{{ cat }}</v-chip>
+              <v-chip v-for="cat in categories" :key="cat" :value="cat" variant="tonal" size="small" class="mr-1">{{ cat === 'Alle' ? t('common.all') : cat }}</v-chip>
             </v-chip-group>
           </v-card-title>
           <v-card-text class="pt-4 overflow-y-scroll flex-grow-1 px-4" style="scrollbar-gutter: stable;">
@@ -177,15 +177,15 @@
     <!-- Abrechnen Dialog -->
     <v-dialog v-model="abrechnenDialog" max-width="400px">
       <v-card>
-        <v-card-title class="bg-primary text-white">Slot Abrechnen</v-card-title>
+        <v-card-title class="bg-primary text-white">{{ t('pos.settleTitle') }}</v-card-title>
         <v-card-text class="pt-6">
           <div class="mb-4 pa-3 border rounded-lg bg-surface-variant">
             <div class="d-flex justify-space-between mb-1">
-              <span>Offener Betrag:</span>
+              <span>{{ t('pos.dueAmount') }}</span>
               <span class="font-weight-bold">{{ Number(selectedSlot?.balance || 0).toFixed(2) }}€</span>
             </div>
             <div class="d-flex justify-space-between align-center">
-              <span>Trinkgeld:</span>
+              <span>{{ t('pos.tip') }}</span>
               <div style="width: 100px">
                 <v-text-field
                   v-model.number="abrechnenForm.tipAmount"
@@ -200,18 +200,18 @@
             </div>
             <v-divider class="my-2"></v-divider>
             <div class="d-flex justify-space-between text-h6 font-weight-bold">
-              <span>Gesamt:</span>
+              <span>{{ t('pos.grandTotal') }}</span>
               <span>{{ (Number(selectedSlot?.balance || 0) + Number(abrechnenForm.tipAmount || 0)).toFixed(2) }}€</span>
             </div>
           </div>
 
-          <v-select v-model="abrechnenForm.method" :items="paymentOptions" label="Zahlungsart" variant="outlined" density="compact"></v-select>
-          <v-text-field v-if="abrechnenForm.method === 'PAYPAL'" v-model="abrechnenForm.paypalReference" label="PayPal Referenz (optional)" variant="outlined" density="compact"></v-text-field>
+          <v-select v-model="abrechnenForm.method" :items="paymentOptions" :label="t('pos.paymentMethod')" variant="outlined" density="compact"></v-select>
+          <v-text-field v-if="abrechnenForm.method === 'PAYPAL'" v-model="abrechnenForm.paypalReference" :label="t('pos.paypalRef')" variant="outlined" density="compact"></v-text-field>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn variant="text" @click="abrechnenDialog = false">Abbrechen</v-btn>
-          <v-btn color="success" variant="flat" @click="confirmAbrechnen" :loading="checkingOut">Bestätigen</v-btn>
+          <v-btn variant="text" @click="abrechnenDialog = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="success" variant="flat" @click="confirmAbrechnen" :loading="checkingOut">{{ t('pos.confirm') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -220,8 +220,11 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { articlesApi, type Article, cashRegisterApi } from '../../api/cash-register'
 import { api } from '../../api/axios'
+
+const { t } = useI18n()
 
 function getImageUrl(path: string | undefined) {
   if (!path) return ''
@@ -268,7 +271,7 @@ const guestOptions = computed(() => {
   return guestSlots.value
     .map(s => ({ 
       id: s.id, 
-      title: s.isActive ? `Slot ${s.slotNumber} (Frei)` : `[BELEGT] ${s.displayName || 'Gast'} (Slot ${s.slotNumber})`,
+      title: s.isActive ? `Slot ${s.slotNumber} (${t('pos.free')})` : `[${t('pos.occupied').toUpperCase()}] ${s.displayName || 'Gast'} (Slot ${s.slotNumber})`,
       isActive: s.isActive
     }))
 })
@@ -320,8 +323,8 @@ async function loadData() {
 }
 
 function addToCart(article: Article) {
-  if (checkoutMode.value === 'MEMBER' && !selectedAccountId.value) return alert('Bitte zuerst Konto wählen.')
-  if (checkoutMode.value === 'GUEST' && !selectedSlotId.value) return alert('Bitte zuerst Slot wählen.')
+  if (checkoutMode.value === 'MEMBER' && !selectedAccountId.value) return alert(t('pos.selectAccountFirst'))
+  if (checkoutMode.value === 'GUEST' && !selectedSlotId.value) return alert(t('pos.selectSlotFirst'))
 
   const existing = cart.value.find(c => c.article.id === article.id)
   if (existing) {
@@ -401,7 +404,7 @@ async function submitMemberCheckout() {
     selectedAccount.value = await cashRegisterApi.getAccount(selectedAccountId.value)
     selectedAccountId.value = null
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Buchung fehlgeschlagen')
+    alert(e.response?.data?.message || t('pos.settleError'))
   }
   checkingOut.value = false
 }
@@ -420,7 +423,7 @@ async function submitGuestCheckout() {
     // Don't deselect the slot, user might want to continue or settle
     await loadData() // Refresh freed/taken slots
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Buchung fehlgeschlagen')
+    alert(e.response?.data?.message || t('pos.settleError'))
   }
   checkingOut.value = false
 }
@@ -428,10 +431,10 @@ async function submitGuestCheckout() {
 // Settlement logic
 const abrechnenDialog = ref(false)
 const abrechnenForm = ref({ method: 'CASH', paypalReference: '', tipAmount: 0 })
-const paymentOptions = [
-  { title: 'Bar (Kasse)', value: 'CASH' },
-  { title: 'PayPal (Manuell geprüft)', value: 'PAYPAL' },
-]
+const paymentOptions = computed(() => [
+  { title: t('pos.methodCash'), value: 'CASH' },
+  { title: t('pos.methodPaypal'), value: 'PAYPAL' },
+])
 
 function openAbrechnenDialog() {
   abrechnenForm.value = { method: 'CASH', paypalReference: '', tipAmount: 0 }
@@ -451,7 +454,7 @@ async function confirmAbrechnen() {
     selectedSlotId.value = null
     await loadData()
   } catch(e) {
-    alert('Fehler beim Abrechnen!')
+    alert(t('pos.settleError'))
   }
   checkingOut.value = false
 }

@@ -5,7 +5,7 @@
     <v-row v-if="stats">
       <v-col cols="12" md="4">
         <v-card class="pa-4 elevation-2 text-center h-100" color="surface">
-          <div class="text-overline text-grey">Fortschritt {{ year }}</div>
+          <div class="text-overline text-grey">{{ t('hours.progress') }} {{ year }}</div>
           <div class="text-h3 font-weight-bold text-primary">
             {{ stats.confirmedHours }} / {{ quota?.requiredHours || 0 }}h
           </div>
@@ -14,25 +14,25 @@
             color="primary" height="12" rounded class="mt-4"
           ></v-progress-linear>
           <div class="text-caption text-grey mt-2">
-            Status: {{ progressStatus }}
+            {{ t('hours.status') }} {{ progressStatus }}
           </div>
         </v-card>
       </v-col>
       <v-col cols="12" md="8">
         <v-card class="pa-4 elevation-2 h-100" color="surface">
-          <div class="text-h6 mb-2">Details</div>
+          <div class="text-h6 mb-2">{{ t('hours.details') }}</div>
           <v-row>
             <v-col cols="6" sm="3">
-              <div class="text-caption text-grey">Bestätigt</div>
+              <div class="text-caption text-grey">{{ t('hours.confirmed') }}</div>
               <div class="text-h5">{{ stats.confirmedHours }}h</div>
             </v-col>
             <v-col cols="6" sm="3">
-              <div class="text-caption text-grey">Geplant/Offen</div>
+              <div class="text-caption text-grey">{{ t('hours.open') }}</div>
               <div class="text-h5">{{ stats.totalHours - stats.confirmedHours }}h</div>
             </v-col>
             <v-col cols="12" sm="6" class="d-flex align-center justify-end">
               <v-btn color="primary" prepend-icon="mdi-plus" @click="showManualDialog = true">
-                Leistung einreichen
+                {{ t('hours.submit') }}
               </v-btn>
             </v-col>
           </v-row>
@@ -41,18 +41,18 @@
     </v-row>
 
     <v-tabs v-model="activeTab" class="mt-6" color="primary">
-      <v-tab value="entries">Meine Einträge</v-tab>
-      <v-tab value="events">Offene Einsätze</v-tab>
-      <v-tab value="calendar">Kalender</v-tab>
+      <v-tab value="entries">{{ t('hours.myEntries') }}</v-tab>
+      <v-tab value="events">{{ t('hours.openEvents') }}</v-tab>
+      <v-tab value="calendar">{{ t('hours.calendar') }}</v-tab>
     </v-tabs>
 
     <v-window v-model="activeTab" class="mt-4">
       <!-- MY ENTRIES -->
       <v-window-item value="entries">
         <v-card elevation="2">
-          <v-data-table :headers="entryHeaders" :items="entries" :loading="loading">
+          <v-data-table :headers="entryHeaders" :items="entries" :loading="loading" :no-data-text="t('hours.noEntries')">
             <template #item.date="{ item }">
-              {{ new Date(item.date).toLocaleDateString('de-DE') }}
+              {{ new Date(item.date).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US') }}
             </template>
             <template #item.hours="{ item }">
               <span class="font-weight-bold">{{ item.hours }}h</span>
@@ -84,7 +84,7 @@
               </v-card-title>
               <v-card-subtitle>
                 <v-icon size="small" class="mr-1">mdi-calendar</v-icon>
-                {{ new Date(event.date).toLocaleDateString('de-DE') }}
+                {{ new Date(event.date).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US') }}
                 <v-icon size="small" class="ml-3 mr-1">mdi-map-marker</v-icon>
                 {{ event.location || 'Vereinsheim' }}
               </v-card-subtitle>
@@ -101,14 +101,14 @@
                   :disabled="isSignedUp(event.id) || !!(event.maxSlots && (event._count?.entries ?? 0) >= event.maxSlots)"
                   @click="signup(event.id)"
                 >
-                  {{ isSignedUp(event.id) ? 'Angemeldet' : 'Teilnehmen' }}
+                  {{ isSignedUp(event.id) ? t('hours.signedUp') : t('hours.signup') }}
                 </v-btn>
               </v-card-actions>
             </v-card>
           </v-col>
           <v-col v-if="events.length === 0" cols="12" class="text-center py-12">
             <v-icon size="64" color="grey-lighten-1">mdi-calendar-blank</v-icon>
-            <div class="text-h6 text-grey mt-2">Aktuell keine geplanten Einsätze</div>
+            <div class="text-h6 text-grey mt-2">{{ t('hours.noEntries') }}</div>
           </v-col>
         </v-row>
       </v-window-item>
@@ -122,7 +122,7 @@
                 <template #prepend>
                   <div class="d-flex flex-column align-center mr-4" style="width: 50px">
                     <span class="text-h6 font-weight-bold">{{ new Date(event.date).getDate() }}</span>
-                    <span class="text-caption">{{ new Date(event.date).toLocaleDateString('de-DE', { weekday: 'short' }) }}</span>
+                    <span class="text-caption">{{ new Date(event.date).toLocaleDateString(locale === 'de' ? 'de-DE' : 'en-US', { weekday: 'short' }) }}</span>
                   </div>
                 </template>
                 <v-list-item-title class="font-weight-bold">{{ event.title }}</v-list-item-title>
@@ -133,14 +133,14 @@
                     variant="outlined" size="small" color="primary"
                     :disabled="!!(event.maxSlots && (event._count?.entries ?? 0) >= event.maxSlots)"
                     @click="signup(event.id)"
-                  >Teilnehmen</v-btn>
-                  <v-chip v-else color="success" size="small">Angemeldet</v-chip>
+                  >{{ t('hours.signup') }}</v-btn>
+                  <v-chip v-else color="success" size="small">{{ t('hours.signedUp') }}</v-chip>
                 </template>
               </v-list-item>
             </v-list>
           </div>
           <div v-if="events.length === 0" class="text-center py-12 text-grey">
-            Keine Termine geplant.
+            {{ t('hours.noDates') }}
           </div>
         </v-card>
       </v-window-item>
@@ -149,18 +149,18 @@
     <!-- MANUAL ENTRY DIALOG -->
     <v-dialog v-model="showManualDialog" max-width="500px">
       <v-card>
-        <v-card-title class="bg-primary text-white">Eigenleistung einreichen</v-card-title>
+        <v-card-title class="bg-primary text-white">{{ t('hours.manualTitle') }}</v-card-title>
         <v-card-text class="pt-4">
           <v-form ref="manualForm" v-model="valid">
-            <v-text-field v-model="manualEntry.date" label="Datum des Einsatzes" type="date" required></v-text-field>
-            <v-text-field v-model.number="manualEntry.hours" label="Stunden" type="number" step="0.5" required></v-text-field>
-            <v-textarea v-model="manualEntry.description" label="Was wurde gemacht?" required></v-textarea>
+            <v-text-field v-model="manualEntry.date" :label="t('hours.manualDate')" type="date" required></v-text-field>
+            <v-text-field v-model.number="manualEntry.hours" :label="t('hours.hours')" type="number" step="0.5" required></v-text-field>
+            <v-textarea v-model="manualEntry.description" :label="t('hours.manualDesc')" required></v-textarea>
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn variant="text" @click="showManualDialog = false">Abbrechen</v-btn>
-          <v-btn color="primary" variant="flat" :disabled="!valid" :loading="submitting" @click="submitManual">Einreichen</v-btn>
+          <v-btn variant="text" @click="showManualDialog = false">{{ t('common.cancel') }}</v-btn>
+          <v-btn color="primary" variant="flat" :disabled="!valid" :loading="submitting" @click="submitManual">{{ t('profile.submit') }}</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -169,7 +169,12 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useConfirm } from '../composables/useConfirm'
 import { hoursApi, type HoursEntry, type HoursEvent, type HoursQuota } from '../api/hours'
+
+const { t, locale } = useI18n()
+const { confirm } = useConfirm()
 
 const loading = ref(false)
 const submitting = ref(false)
@@ -190,13 +195,13 @@ const manualEntry = ref({
   year: year.value
 })
 
-const entryHeaders: any = [
-  { title: 'Datum', key: 'date' },
-  { title: 'Beschreibung', key: 'description' },
-  { title: 'Stunden', key: 'hours' },
-  { title: 'Status', key: 'status' },
-  { title: '', key: 'actions', sortable: false, align: 'end' }
-]
+const entryHeaders = computed(() => [
+  { title: t('hours.date'), key: 'date' },
+  { title: t('hours.description'), key: 'description' },
+  { title: t('hours.hours'), key: 'hours' },
+  { title: t('common.status'), key: 'status' },
+  { title: '', key: 'actions', sortable: false, align: 'end' as const }
+])
 
 async function load() {
   loading.value = true
@@ -217,9 +222,9 @@ async function load() {
 }
 
 const progressStatus = computed(() => {
-  if (!quota.value) return 'Kein Kontingent festgelegt'
-  if (stats.value.confirmedHours >= quota.value.requiredHours) return 'Kontingent erfüllt! 🎉'
-  return `${quota.value.requiredHours - stats.value.confirmedHours}h verbleibend`
+  if (!quota.value) return t('hours.noQuota')
+  if (stats.value.confirmedHours >= quota.value.requiredHours) return t('hours.quotaMet')
+  return `${quota.value.requiredHours - stats.value.confirmedHours}${t('hours.remaining')}`
 })
 
 const groupedEvents = computed(() => {
@@ -227,7 +232,7 @@ const groupedEvents = computed(() => {
   const sorted = [...events.value].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
   
   sorted.forEach(e => {
-    const month = new Date(e.date).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' })
+    const month = new Date(e.date).toLocaleDateString(locale.value === 'de' ? 'de-DE' : 'en-US', { month: 'long', year: 'numeric' })
     if (!groups[month]) groups[month] = []
     groups[month].push(e)
   })
@@ -247,11 +252,11 @@ function getStatusColor(status: string) {
 
 function translateStatus(status: string) {
   switch (status) {
-    case 'CONFIRMED': return 'Bestätigt'
-    case 'COMPLETED': return 'Erledigt'
-    case 'PLANNED': return 'Geplant'
-    case 'REJECTED': return 'Abgelehnt'
-    case 'CANCELLED': return 'Abgesagt'
+    case 'CONFIRMED': return t('hours.confirmed')
+    case 'COMPLETED': return t('hours.submitted')
+    case 'PLANNED': return t('hours.open')
+    case 'REJECTED': return t('hours.rejected')
+    case 'CANCELLED': return t('hours.cancelled')
     default: return status
   }
 }
@@ -265,7 +270,7 @@ async function signup(eventId: string) {
     await hoursApi.signupToEvent(eventId)
     await load()
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Fehler bei der Anmeldung')
+    alert(e.response?.data?.message || t('hours.signupError'))
   }
 }
 
@@ -277,18 +282,18 @@ async function submitManual() {
     manualEntry.value.description = ''
     await load()
   } catch (e: any) {
-    alert(e.response?.data?.message || 'Fehler beim Einreichen')
+    alert(e.response?.data?.message || t('hours.submitError'))
   }
   submitting.value = false
 }
 
 async function deleteEntry(id: string) {
-  if (!confirm('Möchtest du diesen Eintrag wirklich löschen?')) return
+  if (!await confirm(t('common.confirm'), t('hours.deleteConfirm'))) return
   try {
     await hoursApi.deleteEntry(id)
     await load()
   } catch (e) {
-    alert('Fehler beim Löschen')
+    alert(t('hours.deleteError'))
   }
 }
 
