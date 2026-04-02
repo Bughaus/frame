@@ -88,8 +88,17 @@
           <v-card-text>
             <p class="mb-4">{{ t('help.supportHint') }}</p>
             <v-list density="compact" class="bg-transparent">
-              <v-list-item prepend-icon="mdi-email-outline" title="support@verein.de"></v-list-item>
-              <v-list-item prepend-icon="mdi-account-tie" :title="`${t('members.identify')}: Michael`"></v-list-item>
+              <v-list-item 
+                v-if="configStore.clubEmail" 
+                prepend-icon="mdi-email-outline" 
+                :title="configStore.clubEmail"
+                :href="`mailto:${configStore.clubEmail}`"
+              ></v-list-item>
+              <v-list-item 
+                v-if="configStore.clubVorstandNames" 
+                prepend-icon="mdi-account-tie" 
+                :title="configStore.clubVorstandNames"
+              ></v-list-item>
             </v-list>
             <v-alert type="info" variant="tonal" density="compact" class="mt-4">
               {{ t('help.feedbackHint') }}
@@ -104,7 +113,9 @@
 <script setup lang="ts">
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '../stores/auth.store'
+import { useSystemConfigStore } from '../stores/system-config.store'
 
 const { t } = useI18n()
 const authStore = useAuthStore()
+const configStore = useSystemConfigStore()
 </script>

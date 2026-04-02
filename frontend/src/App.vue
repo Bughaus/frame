@@ -3,19 +3,20 @@
     <v-app-bar color="primary" density="compact">
       <div class="d-flex align-center flex-shrink-0 mr-4 ml-3">
         <v-tooltip
-          text="F.R.A.M.E. - Financials, Records, Activity, and Member Expenses"
+          :text="configStore.clubName"
           location="bottom"
           :open-delay="800"
         >
           <template #activator="{ props }">
             <v-img 
               v-bind="props"
-              src="/logo.png" 
+               :src="configStore.clubLogoUrl" 
               alt="Logo" 
               width="32" 
               height="32" 
               class="mr-2 rounded-sm" 
               style="cursor: pointer"
+              contain
               @click="router.push('/dashboard')"
             />
           </template>
@@ -77,13 +78,14 @@
               <v-list-item to="/billing" prepend-icon="mdi-account-cash" :title="t('nav.clubCash')"></v-list-item>
               <v-list-item to="/cashbox" prepend-icon="mdi-cash-register" :title="t('nav.accounting')"></v-list-item>
               <v-list-item to="/admin/devices" prepend-icon="mdi-tablet-cellphone" :title="t('nav.devices')"></v-list-item>
-              <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/hours-management" prepend-icon="mdi-calendar-check" :title="t('nav.events')"></v-list-item>
               <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/inbox" prepend-icon="mdi-inbox-multiple-outline">
                 <template #title>
                   {{ t('nav.inbox') }}
                   <v-chip v-if="inboxCount?.total" size="x-small" color="error" class="ml-1" variant="flat">{{ inboxCount.total }}</v-chip>
                 </template>
               </v-list-item>
+              <v-divider class="my-1"></v-divider>
+              <v-list-item to="/admin/settings" prepend-icon="mdi-cog-outline" :title="t('admin.navSettings')"></v-list-item>
             </template>
           </v-list>
         </v-menu>
@@ -331,6 +333,7 @@ import { useAuthStore } from './stores/auth.store'
 import { useDeviceStore } from './stores/device.store'
 import { useRouter, useRoute } from 'vue-router'
 import { api } from './api/axios'
+import { useSystemConfigStore } from './stores/system-config.store'
 import { useI18n } from 'vue-i18n'
 import RfidEmulator from './components/dev/RfidEmulator.vue'
 import AboutDialog from './components/AboutDialog.vue'
@@ -341,6 +344,7 @@ const { t, locale } = useI18n()
 const theme = useTheme()
 const authStore = useAuthStore()
 const deviceStore = useDeviceStore()
+const configStore = useSystemConfigStore()
 const router = useRouter()
 const route = useRoute()
 
@@ -373,7 +377,8 @@ const adminRoutes = [
   '/cashbox',
   '/hours-management',
   '/inbox',
-  '/admin/devices'
+  '/admin/devices',
+  '/admin/settings'
 ]
 const isAdminActive = computed(() => adminRoutes.some(r => route.path.startsWith(r)))
 
@@ -456,6 +461,7 @@ onMounted(() => {
 
   refreshAllStatus()
   fetchBackendVersion()
+  configStore.fetchPublicConfig()
   
   // Buffers
   pollingInterval = setInterval(refreshAllStatus, 60000)

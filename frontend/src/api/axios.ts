@@ -13,6 +13,8 @@ export const api = axios.create({
   }
 })
 
+export { apiBaseURL };
+
 api.interceptors.request.use(config => {
   const authStore = useAuthStore()
   const deviceStore = useDeviceStore()

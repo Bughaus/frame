@@ -6,7 +6,7 @@
           <v-card-text class="text-center">
             <v-fade-transition hide-on-leave>
               <!-- RFID SCAN MODE (Default) -->
-              <div v-if="loginMode === 'rfid'" key="rfid" class="pa-4">
+              <div v-if="configStore.isRfidEnabled && loginMode === 'rfid'" key="rfid" class="pa-4">
                 <v-icon size="80" color="primary" class="mb-6">mdi-contactless-payment</v-icon>
                 <h1 class="text-h5 font-weight-bold mb-2">{{ t('auth.scanTitle') }}</h1>
                 <p class="text-body-1 text-grey-darken-1 mb-8">
@@ -20,7 +20,7 @@
                 <v-divider class="mb-6"></v-divider>
                 
                 <v-btn
-                  v-if="deviceStore.isAuthorized"
+                  v-if="configStore.isRfidEnabled && deviceStore.isAuthorized"
                   variant="text"
                   color="secondary"
                   @click="loginMode = 'password'"
@@ -35,7 +35,7 @@
                 <div class="d-flex align-center mb-6">
                    <h1 class="text-h5 font-weight-bold">{{ t('auth.login') }}</h1>
                    <v-spacer></v-spacer>
-                   <v-btn v-if="deviceStore.isAuthorized" icon="mdi-close" variant="text" size="small" @click="loginMode = 'rfid'"></v-btn>
+                   <v-btn v-if="configStore.isRfidEnabled && deviceStore.isAuthorized" icon="mdi-close" variant="text" size="small" @click="loginMode = 'rfid'"></v-btn>
                 </div>
 
                 <v-form @submit.prevent="handleLogin">
@@ -63,7 +63,7 @@
                   </v-btn>
                 </v-form>
 
-                <div v-if="deviceStore.isAuthorized" class="mt-6 text-center">
+                <div v-if="configStore.isRfidEnabled && deviceStore.isAuthorized" class="mt-6 text-center">
                   <v-btn variant="text" color="secondary" size="small" @click="loginMode = 'rfid'" prepend-icon="mdi-contactless-payment">
                     {{ t('auth.backToScan') }}
                   </v-btn>
@@ -81,6 +81,10 @@
           ></v-progress-linear>
         </v-card>
         
+        <div v-if="configStore.websiteDisclaimer" class="text-body-2 text-grey-darken-1 mb-2 px-4 italic">
+          {{ configStore.websiteDisclaimer }}
+        </div>
+        
         <div class="text-caption text-grey-darken-1 font-weight-medium">
           {{ t('auth.versions', { app: appVersion, api: apiVersion || '...' }) }}
         </div>
@@ -96,9 +100,11 @@ import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { api } from '../../api/axios'
 import { useDeviceStore } from '../../stores/device.store'
+import { useSystemConfigStore } from '../../stores/system-config.store'
 
 const authStore = useAuthStore()
 const deviceStore = useDeviceStore()
+const configStore = useSystemConfigStore()
 const router = useRouter()
 const { t } = useI18n()
 
@@ -108,7 +114,7 @@ const apiVersion = ref('')
 
 const username = ref('')
 const password = ref('')
-const loginMode = ref<'rfid' | 'password'>(deviceStore.isAuthorized ? 'rfid' : 'password')
+const loginMode = ref<'rfid' | 'password'>(configStore.isRfidEnabled && deviceStore.isAuthorized ? 'rfid' : 'password')
 const isLoading = ref(false)
 const errorMsg = ref('')
 

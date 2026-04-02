@@ -47,6 +47,16 @@
 
           <v-divider inset />
 
+          <!-- Club Disclaimer -->
+          <v-list-item v-if="configStore.websiteDisclaimer" prepend-icon="mdi-text-box-search-outline" class="mb-2">
+            <v-list-item-title class="font-weight-bold">Rechtlicher Hinweis / Disclaimer</v-list-item-title>
+            <div class="text-body-2 text-medium-emphasis mt-1 text-wrap border-s-lg border-primary ps-3 py-1 bg-grey-lighten-4 rounded-e-lg italic font-weight-medium">
+              {{ configStore.websiteDisclaimer }}
+            </div>
+          </v-list-item>
+
+          <v-divider inset />
+
           <!-- Developer -->
           <v-list-item prepend-icon="mdi-account-hard-hat-outline">
             <v-list-item-title class="font-weight-bold">Developer</v-list-item-title>
@@ -182,6 +192,9 @@
 </template>
 
 <script setup lang="ts">
+import { useSystemConfigStore } from '../stores/system-config.store'
+
+const configStore = useSystemConfigStore()
 const model = defineModel<boolean>({ default: false })
 
 defineProps<{

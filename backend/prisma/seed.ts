@@ -150,6 +150,37 @@ async function main() {
     })
   }
 
+  // 4. Seed System Config
+  const systemConfigs = [
+    { key: 'CLUB_NAME', value: 'Bughaus Frame Club', group: 'GENERAL', label: 'Vereinsname' },
+    { key: 'CLUB_LOGO_URL', value: '/logo.png', group: 'GENERAL', label: 'Logo URL' },
+    { key: 'CLUB_ADDRESS_STREET', value: 'Musterstraße 1', group: 'GENERAL', label: 'Straße' },
+    { key: 'CLUB_ADDRESS_CITY', value: '12345 Musterstadt', group: 'GENERAL', label: 'Stadt' },
+    { key: 'CLUB_ADDRESS_COUNTRY', value: 'Deutschland', group: 'GENERAL', label: 'Land' },
+    { key: 'CLUB_IBAN', value: 'DE12 3456 7890 1234 5678 90', group: 'FINANCE', label: 'IBAN' },
+    { key: 'CLUB_BIC', value: 'GENO DE FF XXX', group: 'FINANCE', label: 'BIC' },
+    { key: 'CLUB_VORSTAND_NAMES', value: 'Alexander Admin, Stefan Vorstand', group: 'GENERAL', label: 'Vorstand Namen' },
+    { key: 'CLUB_EMAIL', value: 'vorstand@snooker-club.de', group: 'GENERAL', label: 'Club Email' },
+    { key: 'CLUB_DISCLAIMER', value: 'Diese Rechnung wurde maschinell erstellt und ist ohne Unterschrift gültig. Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.', group: 'GENERAL', label: 'Rechtlicher Hinweis / Disclaimer' },
+    { key: 'CLUB_WEBSITE_DISCLAIMER', value: 'Dies ist eine vereinsinterne Software. Alle Angaben ohne Gewähr.', group: 'GENERAL', label: 'Website Hinweis / Footer' },
+    { key: 'AUTH_RFID_ENABLED', value: 'true', group: 'SECURITY', label: 'RFID Login global aktiviert' },
+    { key: 'MAIL_SMTP_HOST', value: 'smtp.example.com', group: 'MAIL', label: 'SMTP Host' },
+    { key: 'MAIL_SMTP_PORT', value: '587', group: 'MAIL', label: 'SMTP Port' },
+    { key: 'MAIL_SMTP_USER', value: 'user@example.com', group: 'MAIL', label: 'SMTP User' },
+    { key: 'MAIL_SMTP_PASS', value: 'password', group: 'MAIL', label: 'SMTP Password' },
+    { key: 'MAIL_FROM_ADDRESS', value: 'noreply@example.com', group: 'MAIL', label: 'Sender Email' },
+    { key: 'MAIL_FROM_NAME', value: 'FRAME', group: 'MAIL', label: 'Sender Name' },
+    { key: 'MAIL_SMTP_SECURE', value: 'false', group: 'MAIL', label: 'SMTP Secure (SSL/TLS)' },
+  ]
+
+  for (const conf of systemConfigs) {
+    await prisma.systemConfig.upsert({
+      where: { key: conf.key },
+      update: {},
+      create: conf
+    })
+  }
+
   console.log('Seed completed successfully.')
 }
 

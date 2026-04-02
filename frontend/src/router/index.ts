@@ -20,6 +20,7 @@ const routes = [
   { path: '/billing', component: () => import('../views/cash-register/BillingView.vue'), meta: { title: 'Abrechnungen', requiresAuth: true, roles: boardRoles, requiresSecureDevice: true } },
   { path: '/cashbox', component: () => import('../views/cash-register/CashboxView.vue'), meta: { title: 'Barkasse', requiresAuth: true, roles: boardRoles, requiresSecureDevice: true } },
   { path: '/admin/devices', component: () => import('../views/admin/DeviceManagementView.vue'), meta: { title: 'Geräteverwaltung', requiresAuth: true, roles: boardRoles } },
+  { path: '/admin/settings', component: () => import('../views/admin/SettingsView.vue'), meta: { title: 'Einstellungen', requiresAuth: true, roles: boardRoles, requiresSecureDevice: true } },
   { path: '/hours', component: () => import('../views/WorkingHoursView.vue'), meta: { title: 'Arbeitsdienst', requiresAuth: true } },
   { path: '/hours-management', component: () => import('../views/admin/HoursManagementView.vue'), meta: { title: 'Events & Arbeitsdienste', requiresAuth: true, roles: ['ADMIN', 'VORSTAND'], requiresSecureDevice: true } },
   { path: '/help', component: () => import('../views/HelpView.vue'), meta: { title: 'Hilfe', requiresAuth: true } },
