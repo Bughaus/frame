@@ -3,10 +3,16 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { CreateGuestTransactionDto } from './dto/create-guest-transaction.dto';
 import { GuestPaymentMethod } from '@prisma/client';
+import { SystemConfigService } from '../system-config/system-config.service';
+import { join } from 'path';
+import { existsSync } from 'fs';
 
 @Injectable()
 export class CashRegisterService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private configService: SystemConfigService
+  ) {}
 
   async createTransaction(dto: CreateTransactionDto, userId: string) {
     if (!dto.items || dto.items.length === 0) throw new BadRequestException('Transaction must contain at least one item.');
@@ -170,24 +176,30 @@ export class CashRegisterService {
 
   async generateInvoicePdf(invoiceId: string): Promise<Buffer> {
     const PDFDocument = require('pdfkit');
-    const invoice = await this.prisma.invoice.findUnique({ where: { id: invoiceId }, include: { account: { include: { member: true } }, transactions: { include: { items: { include: { article: true } } } } } });
+    const invoice = await this.prisma.invoice.findUnique({ 
+      where: { id: invoiceId }, 
+      include: { 
+        account: { include: { member: true } }, 
+        transactions: { include: { items: { include: { article: true } } } } 
+      } 
+    });
     if (!invoice) throw new NotFoundException('Invoice not found');
     
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ 
+        margin: 50, 
+        bufferPages: true,
+        autoFirstPage: true 
+      });
       const buffers: Buffer[] = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
 
-      doc.fontSize(20).text(`Rechnung ${invoice.invoiceNumber}`, { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(12).text(`Mitglied: ${invoice.account.member.firstName} ${invoice.account.member.lastName}`);
+      // Recipient info
+      doc.fontSize(12).text(`Mitglied: ${invoice.account.member.firstName} ${invoice.account.member.lastName}`, 50, 160);
       doc.text(`Mitglieds-Nr.: ${invoice.account.member.memberNumber}`);
-      doc.text(`Datum: ${invoice.createdAt.toLocaleDateString('de-DE')}`);
-      doc.text(`Fällig: ${invoice.dueDate ? invoice.dueDate.toLocaleDateString('de-DE') : '-'}`);
       doc.moveDown();
 
-      // Table header
       const startY = doc.y;
       doc.font('Helvetica-Bold').fontSize(10);
       doc.text('Datum', 50, startY);
@@ -200,8 +212,16 @@ export class CashRegisterService {
       doc.font('Helvetica').fontSize(9);
       let y = startY + 22;
       for (const t of invoice.transactions) {
+        const checkPage = () => {
+          if (y > 700) {
+            doc.addPage();
+            y = 160;
+          }
+        };
+
         if (t.items && t.items.length > 0) {
           for (const item of t.items) {
+            checkPage();
             doc.text(t.createdAt.toLocaleDateString('de-DE'), 50, y);
             doc.text(item.description || item.article?.name || 'Artikel', 130, y, { width: 160 });
             doc.text(String(Number(item.quantity)), 300, y);
@@ -210,6 +230,7 @@ export class CashRegisterService {
             y += 16;
           }
         } else {
+          checkPage();
           doc.text(t.createdAt.toLocaleDateString('de-DE'), 50, y);
           doc.text(t.description, 130, y, { width: 160 });
           doc.text('', 300, y);
@@ -222,7 +243,10 @@ export class CashRegisterService {
       doc.moveTo(50, y + 5).lineTo(550, y + 5).stroke();
       doc.font('Helvetica-Bold').fontSize(12);
       doc.text(`Gesamtbetrag: ${Number(invoice.totalGross).toFixed(2)} EUR`, 50, y + 15, { align: 'right' });
-      doc.end();
+      
+      this.finalizeDocument(doc, invoice.invoiceNumber, invoice.createdAt, invoice.dueDate || undefined).then(() => {
+        doc.end();
+      });
     });
   }
 
@@ -231,29 +255,24 @@ export class CashRegisterService {
     const tx = await this.prisma.guestTransaction.findUnique({ where: { id: txId }, include: { slot: true } });
     if (!tx || !tx.settledAt) throw new NotFoundException('Transaction not found or not settled');
 
-    const settledAt = tx.settledAt!; // Non-null assertion for TS
+    const settledAt = tx.settledAt!;
 
-    // Group all transactions from the same checkout session
     const sessionTxs = await this.prisma.guestTransaction.findMany({
       where: { slotId: tx.slotId, settledAt },
       orderBy: { createdAt: 'asc' }
     });
 
     return new Promise((resolve, reject) => {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ margin: 50, bufferPages: true });
       const buffers: Buffer[] = [];
       doc.on('data', buffers.push.bind(buffers));
       doc.on('end', () => resolve(Buffer.concat(buffers)));
 
-      doc.fontSize(20).text('Quittung / Gast-Beleg', { align: 'center' });
-      doc.moveDown();
-      doc.fontSize(12).text(`Gast: ${tx.slot.displayName || 'Gast'}`);
+      doc.fontSize(12).text(`Gast: ${tx.slot.displayName || 'Gast'}`, 50, 160);
       doc.text(`Slot: ${tx.slot.slotNumber}`);
-      doc.text(`Datum: ${settledAt.toLocaleDateString('de-DE')}`);
       doc.text(`Zahlungsart: ${tx.paymentMethod}`);
       doc.moveDown();
 
-      // Table header
       const startY = doc.y;
       doc.font('Helvetica-Bold').fontSize(10);
       doc.text('Artikel', 50, startY);
@@ -269,6 +288,7 @@ export class CashRegisterService {
       for (const stx of sessionTxs) {
         const items = stx.items as any[];
         for (const item of items) {
+          if (y > 700) { doc.addPage(); y = 160; }
           const qty = Number(item.qty || item.quantity || 1);
           const price = Number(item.unitPrice || item.article?.price || 0);
           const total = qty * price;
@@ -285,7 +305,10 @@ export class CashRegisterService {
       doc.moveTo(50, y + 5).lineTo(550, y + 5).stroke();
       doc.font('Helvetica-Bold').fontSize(12);
       doc.text(`Gesamtbetrag: ${grandTotal.toFixed(2)} EUR`, 50, y + 15, { align: 'right' });
-      doc.end();
+      
+      this.finalizeDocument(doc, 'Quittung / Gast-Beleg', settledAt).then(() => {
+        doc.end();
+      });
     });
   }
 
@@ -359,7 +382,7 @@ export class CashRegisterService {
       ...guestTx.map(t => ({
         id: t.id,
         date: t.createdAt,
-        amount: Number(t.totalAmount) * -1, // Normalizing formatting for UI
+        amount: Number(t.totalAmount) * -1,
         type: 'DEBIT',
         source: t.slot.displayName || `Slot ${t.slot.slotNumber}`,
         description: `Gastbuchung (${t.paymentMethod})`,
@@ -491,5 +514,89 @@ export class CashRegisterService {
             } : undefined
         }
     });
+  }
+
+  // PDF Branding Helpers
+
+  private async finalizeDocument(doc: any, title: string, date: Date, dueDate?: Date) {
+    const config = await this.configService.getMap();
+    const range = doc.bufferedPageRange();
+    
+    // Disable auto paging during header/footer drawing
+    const oldBottomMargin = doc.page.margins.bottom;
+    doc.page.margins.bottom = 0;
+
+    for (let i = range.start; i < range.start + range.count; i++) {
+        doc.switchToPage(i);
+        this.drawHeader(doc, config, title, date, dueDate);
+        this.drawFooter(doc, config);
+    }
+
+    doc.page.margins.bottom = oldBottomMargin;
+  }
+
+  private drawHeader(doc: any, config: Record<string, string>, title: string, date: Date, dueDate?: Date) {
+    const clubName = config['CLUB_NAME'] || 'FRAME';
+    const street = config['CLUB_ADDRESS_STREET'] || '';
+    const city = config['CLUB_ADDRESS_CITY'] || '';
+    const clubEmail = config['CLUB_EMAIL'] || '';
+    const logoUrl = config['CLUB_LOGO_URL'];
+
+    if (logoUrl) {
+      const fullPath = join(process.cwd(), logoUrl);
+      if (existsSync(fullPath)) {
+        try {
+          doc.image(fullPath, 50, 45, { width: 60 });
+        } catch (e) {
+          console.warn('Failed to embed logo to PDF:', e);
+        }
+      }
+    }
+
+    doc.font('Helvetica-Bold').fontSize(16).text(clubName, 120, 50);
+    doc.font('Helvetica').fontSize(10).text(street, 120, 70);
+    doc.text(city, 120, 82);
+    if (clubEmail) doc.text(clubEmail, 120, 94);
+
+    doc.font('Helvetica-Bold').fontSize(18).text(title, 350, 50, { align: 'right' });
+    doc.font('Helvetica').fontSize(10).text(`Belegdatum: ${date.toLocaleDateString('de-DE')}`, 350, 75, { align: 'right' });
+    if (dueDate) {
+      doc.text(`Fälligkeitsdatum: ${dueDate.toLocaleDateString('de-DE')}`, 350, 87, { align: 'right' });
+    }
+
+    doc.moveTo(50, 140).lineTo(550, 140).strokeColor('#000000').stroke();
+  }
+
+  private drawFooter(doc: any, config: Record<string, string>) {
+    const street = config['CLUB_ADDRESS_STREET'] || '';
+    const city = config['CLUB_ADDRESS_CITY'] || '';
+    const iban = config['CLUB_IBAN'] || '-';
+    const bic = config['CLUB_BIC'] || '-';
+    const vorstand = config['CLUB_VORSTAND_NAMES'] || '-';
+    const disclaimer = config['CLUB_DISCLAIMER'] || '';
+    const clubName = config['CLUB_NAME'] || 'FRAME';
+
+    const footerY = 730;
+    doc.moveTo(50, footerY - 10).lineTo(550, footerY - 10).strokeColor('#eeeeee').stroke();
+    
+    // Column 1: Address
+    doc.font('Helvetica-Bold').fontSize(8).text('Anschrift:', 50, footerY);
+    doc.font('Helvetica').text(clubName, 50, footerY + 10, { lineBreak: false });
+    doc.text(street, 50, footerY + 20, { lineBreak: false });
+    doc.text(city, 50, footerY + 30, { lineBreak: false });
+
+    // Column 2: Bank
+    doc.font('Helvetica-Bold').text('Bankdaten:', 180, footerY);
+    doc.font('Helvetica').text(`IBAN: ${iban}`, 180, footerY + 10, { lineBreak: false });
+    doc.text(`BIC: ${bic}`, 180, footerY + 20, { lineBreak: false });
+    
+    // Column 3: Vorstand
+    doc.font('Helvetica-Bold').text('Vorstand:', 350, footerY);
+    doc.font('Helvetica').text(vorstand, 350, footerY + 10, { width: 200, lineBreak: false });
+
+    if (disclaimer) {
+      doc.font('Helvetica-Oblique').fontSize(7).fillColor('#666666').text(disclaimer, 50, footerY + 45, { width: 500, align: 'center', lineBreak: false });
+    }
+    doc.fillColor('#000000');
   }
 }
