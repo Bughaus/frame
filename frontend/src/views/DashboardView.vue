@@ -62,7 +62,7 @@
                 <v-card @click="addToCart(article)" hover class="text-center pa-2 article-card h-100 d-flex flex-column" elevation="1" variant="outlined">
                   <v-avatar size="56" class="mx-auto mb-1" rounded="lg">
                     <v-img v-if="article.imageUrl" :src="getImageUrl(article.imageUrl)" cover></v-img>
-                    <v-icon v-else size="32" color="primary">mdi-food-apple</v-icon>
+                    <v-icon v-else size="32" color="primary">{{ article.icon || 'mdi-food-apple' }}</v-icon>
                   </v-avatar>
                   <div class="text-caption font-weight-bold text-truncate w-100" :title="article.name">{{ article.name }}</div>
                   <div class="text-button font-weight-black text-primary mt-auto">{{ Number(article.price).toFixed(2) }}€</div>

@@ -7,6 +7,7 @@ export interface Article {
   price: number;
   taxRate: number;
   category?: string;
+  icon?: string;
   imageUrl?: string;
   isActive: boolean;
 }

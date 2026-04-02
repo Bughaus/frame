@@ -259,6 +259,7 @@ model Article {
   price            Decimal           @db.Decimal(10, 2)
   taxRate          Decimal           @default(0) @db.Decimal(5, 2)
   category         String?
+  icon             String?
   isActive         Boolean           @default(true)
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt

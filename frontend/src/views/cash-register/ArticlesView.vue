@@ -13,7 +13,7 @@
             <template #item.image="{ item }">
               <v-avatar size="40" rounded="lg" class="my-1 border" color="surface-variant">
                 <v-img v-if="item.imageUrl" :src="getImageUrl(item.imageUrl)" cover eager></v-img>
-                <v-icon v-else color="grey">mdi-food-apple</v-icon>
+                <v-icon v-else color="primary">{{ item.icon || 'mdi-food-apple' }}</v-icon>
               </v-avatar>
             </template>
             <template #item.price="{ item }">{{ Number(item.price).toFixed(2) }}€</template>
@@ -41,6 +41,21 @@
           <v-text-field v-model="editedItem.sku" label="SKU / Artikelnummer" variant="outlined" density="compact"></v-text-field>
           <v-text-field v-model="editedItem.category" label="Kategorie (z.B. Getränke)" variant="outlined" density="compact"></v-text-field>
           <v-text-field v-model.number="editedItem.price" type="number" label="Preis (€)" variant="outlined" density="compact"></v-text-field>
+          
+          <div class="text-subtitle-2 mb-2">Symbol wählen</div>
+          <v-slide-group v-model="editedItem.icon" show-arrows class="border rounded-lg pa-2 bg-surface">
+            <v-slide-group-item v-for="icon in flatIcons" :key="icon" :value="icon" v-slot="{ isSelected, toggle }">
+              <v-btn
+                :color="isSelected ? 'primary' : undefined"
+                :variant="isSelected ? 'flat' : 'text'"
+                class="ma-1"
+                icon
+                @click="toggle"
+              >
+                <v-icon size="large">{{ icon }}</v-icon>
+              </v-btn>
+            </v-slide-group-item>
+          </v-slide-group>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -80,6 +95,13 @@ const editedItem = ref<Article>({ ...defaultItem })
 const fileInput = ref<HTMLInputElement | null>(null)
 const uploadTargetId = ref('')
 
+const flatIcons = [
+  'mdi-food-apple', 'mdi-glass-cocktail', 'mdi-bottle-soda', 'mdi-beer', 'mdi-glass-wine', 'mdi-water',
+  'mdi-coffee', 'mdi-tea', 'mdi-food-variant', 'mdi-cookie', 'mdi-popcorn', 'mdi-candy',
+  'mdi-muffin', 'mdi-pizza', 'mdi-billiards', 'mdi-clover', 'mdi-tools', 'mdi-poker-chip',
+  'mdi-tag', 'mdi-star', 'mdi-heart'
+]
+
 function getImageUrl(path: string | undefined) {
   if (!path) return ''
   if (path.startsWith('http')) return path
@@ -110,6 +132,7 @@ async function save() {
       sku: editedItem.value.sku,
       name: editedItem.value.name,
       category: editedItem.value.category,
+      icon: editedItem.value.icon || 'mdi-food-apple',
       price: Number(editedItem.value.price),
       taxRate: 0
     }

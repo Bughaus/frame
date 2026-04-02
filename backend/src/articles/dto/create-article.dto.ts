@@ -23,6 +23,10 @@ export class CreateArticleDto {
   category?: string;
 
   @IsOptional()
+  @IsString()
+  icon?: string;
+
+  @IsOptional()
   @IsBoolean()
   isActive?: boolean;
 }
