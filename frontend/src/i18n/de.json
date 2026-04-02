@@ -11,8 +11,8 @@
     "adminHint": "Administration & Verwaltung",
     "members": "Mitglieder",
     "articles": "Artikelstamm",
-    "clubCash": "Vereinskasse",
-    "accounting": "Buchungen",
+    "clubCash": "Abrechnungen",
+    "accounting": "Barkasse",
     "devices": "Geräteverwaltung",
     "events": "Events & Arbeitsdienste",
     "inbox": "Posteingang"
@@ -153,6 +153,9 @@
     "selectAccountFirst": "Bitte zuerst Konto wählen.",
     "selectSlotFirst": "Bitte zuerst Slot wählen.",
     "settleError": "Fehler beim Abrechnen!",
+    "settleSuccess": "Abrechnung erfolgreich",
+    "settleSuccessHint": "Der Slot wurde geleert. Möchten Sie eine Quittung für den Gast herunterladen?",
+    "downloadReceipt": "Quittung herunterladen",
     "methodCash": "Bar (Kasse)",
     "methodPaypal": "PayPal (Manuell geprüft)"
   },
@@ -283,11 +286,17 @@
     "signupError": "Fehler beim Anmelden"
   },
   "treasurer": {
-    "title": "Vereinskasse",
-    "invoices": "Rechnungen",
+    "title": "Abrechnungen",
+    "invoices": "Rechnungen & SEPA",
     "generateInvoices": "Rechnungen für alle Salden erzeugen",
     "markPaid": "Als Bezahlt markieren",
     "exportSepa": "SEPA-XML für Entwürfe exportieren",
+    "paypalLedger": "PayPal (Gäste)",
+    "masterLedger": "Globales Logbuch (Master)",
+    "exportCsv": "CSV Export",
+    "filterDate": "Datum filtern",
+    "filterType": "Typ filtern",
+    "filterMember": "Mitglied/Quelle filtern",
     "internalRecords": "Eigenbelege",
     "newRecord": "Neuer Beleg",
     "income": "Einnahme",
@@ -305,7 +314,10 @@
     "noDrafts": "Keine Entwürfe zum Exportieren gefunden.",
     "confirmPaid": "Rechnung als BEZAHLT markieren?",
     "uploadError": "Upload fehlgeschlagen",
-    "globalLog": "Buchungen (Globales Logbuch)"
+    "globalLog": "Buchungen (Globales Logbuch)",
+    "cashBalance": "Aktueller Kassenbestand",
+    "cashBook": "Kassenbuch (Bar)",
+    "startingBalance": "Anfangsbestand"
   },
   "devices": {
     "title": "Geräteverwaltung",
@@ -358,8 +370,8 @@
     "noPending": "Keine ausstehenden Bestätigungen"
   },
   "accounting": {
-    "title": "Buchungen",
-    "newRecord": "Neuer Eigenbeleg / Buchung",
+    "title": "Barkasse",
+    "newRecord": "Barentnahme / Bareinzahlung (Eigenbeleg)",
     "type": "Art der Buchung",
     "categoryHint": "Kategorie (z.B. Reinigung, Spende, Material)",
     "recent": "Letzte Einträge",

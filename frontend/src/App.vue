@@ -74,8 +74,8 @@
             
             <template v-if="authStore.hasRole(['VORSTAND'])">
               <v-divider class="my-1"></v-divider>
-              <v-list-item to="/treasurer" prepend-icon="mdi-bank" :title="t('nav.clubCash')"></v-list-item>
-              <v-list-item to="/accounting" prepend-icon="mdi-playlist-plus" :title="t('nav.accounting')"></v-list-item>
+              <v-list-item to="/billing" prepend-icon="mdi-account-cash" :title="t('nav.clubCash')"></v-list-item>
+              <v-list-item to="/cashbox" prepend-icon="mdi-cash-register" :title="t('nav.accounting')"></v-list-item>
               <v-list-item to="/admin/devices" prepend-icon="mdi-tablet-cellphone" :title="t('nav.devices')"></v-list-item>
               <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/hours-management" prepend-icon="mdi-calendar-check" :title="t('nav.events')"></v-list-item>
               <v-list-item v-if="authStore.hasRole(['VORSTAND', 'ADMIN'])" to="/inbox" prepend-icon="mdi-inbox-multiple-outline">
@@ -338,8 +338,8 @@ const route = useRoute()
 const adminRoutes = [
   '/members',
   '/articles',
-  '/treasurer',
-  '/accounting',
+  '/billing',
+  '/cashbox',
   '/hours-management',
   '/inbox',
   '/admin/devices'

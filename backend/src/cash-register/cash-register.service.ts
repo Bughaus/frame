@@ -226,6 +226,69 @@ export class CashRegisterService {
     });
   }
 
+  async generateGuestReceiptPdf(txId: string): Promise<Buffer> {
+    const PDFDocument = require('pdfkit');
+    const tx = await this.prisma.guestTransaction.findUnique({ where: { id: txId }, include: { slot: true } });
+    if (!tx || !tx.settledAt) throw new NotFoundException('Transaction not found or not settled');
+
+    const settledAt = tx.settledAt!; // Non-null assertion for TS
+
+    // Group all transactions from the same checkout session
+    const sessionTxs = await this.prisma.guestTransaction.findMany({
+      where: { slotId: tx.slotId, settledAt },
+      orderBy: { createdAt: 'asc' }
+    });
+
+    return new Promise((resolve, reject) => {
+      const doc = new PDFDocument({ margin: 50 });
+      const buffers: Buffer[] = [];
+      doc.on('data', buffers.push.bind(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      doc.fontSize(20).text('Quittung / Gast-Beleg', { align: 'center' });
+      doc.moveDown();
+      doc.fontSize(12).text(`Gast: ${tx.slot.displayName || 'Gast'}`);
+      doc.text(`Slot: ${tx.slot.slotNumber}`);
+      doc.text(`Datum: ${settledAt.toLocaleDateString('de-DE')}`);
+      doc.text(`Zahlungsart: ${tx.paymentMethod}`);
+      doc.moveDown();
+
+      // Table header
+      const startY = doc.y;
+      doc.font('Helvetica-Bold').fontSize(10);
+      doc.text('Artikel', 50, startY);
+      doc.text('Menge', 300, startY);
+      doc.text('Preis', 380, startY);
+      doc.text('Gesamt', 460, startY);
+      doc.moveTo(50, startY + 15).lineTo(550, startY + 15).stroke();
+
+      doc.font('Helvetica').fontSize(9);
+      let y = startY + 22;
+      let grandTotal = 0;
+
+      for (const stx of sessionTxs) {
+        const items = stx.items as any[];
+        for (const item of items) {
+          const qty = Number(item.qty || item.quantity || 1);
+          const price = Number(item.unitPrice || item.article?.price || 0);
+          const total = qty * price;
+          grandTotal += total;
+
+          doc.text(item.name || item.description || 'Artikel', 50, y, { width: 240 });
+          doc.text(String(qty), 300, y);
+          doc.text(`${price.toFixed(2)} €`, 380, y);
+          doc.text(`${total.toFixed(2)} €`, 460, y);
+          y += 16;
+        }
+      }
+
+      doc.moveTo(50, y + 5).lineTo(550, y + 5).stroke();
+      doc.font('Helvetica-Bold').fontSize(12);
+      doc.text(`Gesamtbetrag: ${grandTotal.toFixed(2)} EUR`, 50, y + 15, { align: 'right' });
+      doc.end();
+    });
+  }
+
   async generateSepaXml(invoiceIds: string[]): Promise<string> {
     const { create } = require('xmlbuilder2');
     const invoices = await this.prisma.invoice.findMany({ where: { id: { in: invoiceIds } }, include: { account: { include: { member: true } } } });
@@ -370,10 +433,22 @@ export class CashRegisterService {
 
     const slot = await this.prisma.guestSlot.findUnique({ where: { id: slotId } });
 
-    return this.prisma.guestSlot.update({
+    const [updatedSlot, sampleTx] = await Promise.all([
+      this.prisma.guestSlot.update({
         where: { id: slotId },
         data: { isActive: true, displayName: `Gast ${slot?.slotNumber}` }
-    });
+      }),
+      this.prisma.guestTransaction.findFirst({
+        where: { slotId, settledAt: { not: null } },
+        orderBy: { settledAt: 'desc' },
+        select: { id: true }
+      })
+    ]);
+
+    return {
+      slot: updatedSlot,
+      transactionId: sampleTx?.id
+    };
   }
 
   async deleteTransaction(id: string, userId: string) {

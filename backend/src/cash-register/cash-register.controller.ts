@@ -123,6 +123,18 @@ export class CashRegisterController {
     return this.cashRegisterService.clearGuestSlot(id, body.paymentMethod, body.paypalReference, req.user.username, body.tipAmount);
   }
 
+  @Get('guest-transactions/:id/receipt')
+  @Roles((Role as any).MITARBEITER, Role.VORSTAND)
+  async getGuestReceiptPdf(@Param('id') id: string, @Res() res: Response) {
+    const buffer = await this.cashRegisterService.generateGuestReceiptPdf(id);
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': `attachment; filename="Quittung-${id}.pdf"`,
+      'Content-Length': buffer.length,
+    });
+    res.end(buffer);
+  }
+
   @Get('eigenbelege')
   @Roles(Role.VORSTAND)
   getEigenbelege() {

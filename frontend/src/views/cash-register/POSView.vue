@@ -215,6 +215,25 @@
         </v-card-actions>
       </v-card>
     </v-dialog>
+
+    <!-- Success / Receipt Dialog -->
+    <v-dialog v-model="successDialog" max-width="400px">
+      <v-card class="text-center pa-4">
+        <v-icon color="success" size="64" class="mx-auto mb-4">mdi-check-circle-outline</v-icon>
+        <v-card-title class="text-h5 pt-0">{{ t('pos.settleSuccess') }}</v-card-title>
+        <v-card-text>
+          {{ t('pos.settleSuccessHint') }}
+        </v-card-text>
+        <v-card-actions class="flex-column ga-2 mt-4">
+          <v-btn color="primary" block variant="flat" prepend-icon="mdi-file-pdf-box" @click="downloadLastReceipt">
+            {{ t('pos.downloadReceipt') }}
+          </v-btn>
+          <v-btn variant="text" block @click="successDialog = false">
+            {{ t('common.close') }}
+          </v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
@@ -430,6 +449,8 @@ async function submitGuestCheckout() {
 
 // Settlement logic
 const abrechnenDialog = ref(false)
+const successDialog = ref(false)
+const lastTxId = ref<string | null>(null)
 const abrechnenForm = ref({ method: 'CASH', paypalReference: '', tipAmount: 0 })
 const paymentOptions = computed(() => [
   { title: t('pos.methodCash'), value: 'CASH' },
@@ -445,18 +466,26 @@ async function confirmAbrechnen() {
   if (!selectedSlotId.value) return
   checkingOut.value = true
   try {
-    await api.post(`/cash-register/guest-slots/${selectedSlotId.value}/clear`, {
+    const res = await api.post(`/cash-register/guest-slots/${selectedSlotId.value}/clear`, {
       paymentMethod: abrechnenForm.value.method,
       paypalReference: abrechnenForm.value.paypalReference,
       tipAmount: abrechnenForm.value.tipAmount
     })
+    lastTxId.value = res.data.transactionId
     abrechnenDialog.value = false
+    successDialog.value = true
     selectedSlotId.value = null
     await loadData()
   } catch(e) {
     alert(t('pos.settleError'))
   }
   checkingOut.value = false
+}
+
+function downloadLastReceipt() {
+  if (lastTxId.value) {
+    cashRegisterApi.downloadGuestReceiptPdf(lastTxId.value)
+  }
 }
 
 onMounted(() => loadData())

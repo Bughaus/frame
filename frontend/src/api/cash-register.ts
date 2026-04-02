@@ -78,5 +78,16 @@ export const cashRegisterApi = {
     document.body.appendChild(link)
     link.click()
     link.remove()
+  },
+
+  downloadGuestReceiptPdf: async (id: string) => {
+    const res = await api.get(`/cash-register/guest-transactions/${id}/receipt`, { responseType: 'blob' })
+    const url = window.URL.createObjectURL(new Blob([res.data]))
+    const link = document.createElement('a')
+    link.href = url
+    link.setAttribute('download', `Quittung-${id}.pdf`)
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
   }
 }

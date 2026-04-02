@@ -11,8 +11,8 @@
     "adminHint": "Administration & Management",
     "members": "Members",
     "articles": "Articles",
-    "clubCash": "Club Cash",
-    "accounting": "Accounting",
+    "clubCash": "Billing",
+    "accounting": "Cashbox",
     "devices": "Devices",
     "events": "Events & Services",
     "inbox": "Inbox"
@@ -152,7 +152,10 @@
     "confirm": "Confirm",
     "selectAccountFirst": "Please select an account first.",
     "selectSlotFirst": "Please select a slot first.",
-    "settleError": "Error during settlement!",
+    "settleError": "Error during settlement",
+    "settleSuccess": "Settlement successful",
+    "settleSuccessHint": "The slot has been cleared. Would you like to download a receipt for the guest?",
+    "downloadReceipt": "Download Receipt",
     "methodCash": "Cash (Register)",
     "methodPaypal": "PayPal (Manually verified)"
   },
@@ -286,11 +289,17 @@
     "versions": "App v{app} · API v{api}"
   },
   "treasurer": {
-    "title": "Club Treasury",
-    "invoices": "Invoices",
+    "title": "Billing",
+    "invoices": "Invoices & SEPA",
     "generateInvoices": "Generate invoices for all balances",
     "markPaid": "Mark as Paid",
     "exportSepa": "Export SEPA XML for drafts",
+    "paypalLedger": "PayPal (Guests)",
+    "masterLedger": "Global Log (Master)",
+    "exportCsv": "Export CSV",
+    "filterDate": "Filter Date",
+    "filterType": "Filter Type",
+    "filterMember": "Filter Member/Source",
     "internalRecords": "Internal Records",
     "newRecord": "New Record",
     "income": "Income",
@@ -308,7 +317,10 @@
     "noDrafts": "No drafts found for export.",
     "confirmPaid": "Mark invoice as PAID?",
     "uploadError": "Upload failed",
-    "globalLog": "Bookings (Global Log)"
+    "globalLog": "Bookings (Global Log)",
+    "cashBalance": "Current Cash Balance",
+    "cashBook": "Cash Book (Bar)",
+    "startingBalance": "Starting Balance"
   },
   "devices": {
     "title": "Device Management",
@@ -361,8 +373,8 @@
     "noPending": "No pending confirmations"
   },
   "accounting": {
-    "title": "Accounting",
-    "newRecord": "New Internal Record / Booking",
+    "title": "Cashbox",
+    "newRecord": "Cash Intake / Cash Withdrawal (Internal Record)",
     "type": "Booking Type",
     "categoryHint": "Category (e.g., Cleaning, Donation, Material)",
     "recent": "Recent Entries",
