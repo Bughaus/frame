@@ -16,7 +16,7 @@ import { SystemConfigModule } from './system-config/system-config.module';
 @Module({
   imports: [
     ServeStaticModule.forRoot({
-      rootPath: join(__dirname, '..', 'uploads'),
+      rootPath: join(process.cwd(), 'uploads'),
       serveRoot: '/uploads',
     }),
     AuthModule, 

@@ -543,7 +543,9 @@ export class CashRegisterService {
     const logoUrl = config['CLUB_LOGO_URL'];
 
     if (logoUrl) {
-      const fullPath = join(process.cwd(), logoUrl);
+      // Ensure we don't treat a leading slash as an absolute filesystem root
+      const relativeLogoUrl = logoUrl.startsWith('/') ? logoUrl.substring(1) : logoUrl;
+      const fullPath = join(process.cwd(), relativeLogoUrl);
       if (existsSync(fullPath)) {
         try {
           doc.image(fullPath, 50, 45, { width: 60 });

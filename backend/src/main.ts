@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { join } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, mkdirSync } from 'fs';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -10,13 +10,12 @@ async function bootstrap() {
   app.enableCors({ origin: '*' }); 
   app.setGlobalPrefix('api/v1');
 
-  // Find the assets folder (could be in root if started from there, or in backend)
-  let uploadsPath = join(process.cwd(), 'uploads');
-  if (!existsSync(uploadsPath)) {
-    uploadsPath = join(process.cwd(), 'backend', 'uploads');
+  // Ensure uploads directory exists
+  const uploadsBrandPath = join(process.cwd(), 'uploads', 'brand');
+  if (!existsSync(uploadsBrandPath)) {
+    mkdirSync(uploadsBrandPath, { recursive: true });
   }
 
-  app.useStaticAssets(uploadsPath, { prefix: '/uploads' });
   await app.listen(process.env.PORT ?? 3000, '0.0.0.0');
 }
 bootstrap();
