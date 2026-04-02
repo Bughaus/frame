@@ -431,46 +431,61 @@ export class CashRegisterService {
   }
 
   async clearGuestSlot(slotId: string, paymentMethod: 'CASH' | 'PAYPAL', paypalReference?: string, userId: string = 'System', tipAmount?: number) {
+    const slot = await this.prisma.guestSlot.findUnique({ where: { id: slotId } });
+    const slotNumber = slot?.slotNumber || 'Unbekannt';
+
+    // 1. Fetch all pending transactions for the slot to consolidate items
+    const pendingTransactions = await this.prisma.guestTransaction.findMany({
+      where: { slotId, settledAt: null, paymentMethod: 'PENDING' as any }
+    });
+
+    const combinedItems: any[] = [];
+    let itemsTotal = 0;
+
+    for (const tx of pendingTransactions) {
+      if (Array.isArray(tx.items)) {
+        combinedItems.push(...(tx.items as any[]));
+      }
+      itemsTotal += Number(tx.totalAmount);
+    }
+
+    // 2. Add Tip as a line item to the consolidation
     if (tipAmount && tipAmount > 0) {
-      await this.prisma.guestTransaction.create({
-        data: {
-          slotId,
-          responsibleMemberId: userId,
-          items: [{ name: 'Trinkgeld', qty: 1, unitPrice: tipAmount }],
-          totalAmount: tipAmount,
-          paymentMethod: paymentMethod as any,
-          paypalReference: paymentMethod === 'PAYPAL' ? paypalReference : null,
-          settledAt: new Date()
-        }
+      combinedItems.push({ name: 'Trinkgeld', qty: 1, unitPrice: tipAmount });
+    }
+
+    const finalTotal = itemsTotal + (tipAmount || 0);
+
+    // 3. Create ONE single settled transaction for everything
+    const finalTransaction = await this.prisma.guestTransaction.create({
+      data: {
+        slotId,
+        responsibleMemberId: userId,
+        items: combinedItems,
+        totalAmount: finalTotal,
+        paymentMethod: paymentMethod as any,
+        paypalReference: paymentMethod === 'PAYPAL' ? paypalReference : null,
+        settledAt: new Date()
+      }
+    });
+
+    // 4. Delete the original pending transactions (they are consolidated now)
+    if (pendingTransactions.length > 0) {
+      await this.prisma.guestTransaction.deleteMany({
+        where: { id: { in: pendingTransactions.map(tx => tx.id) } }
       });
     }
 
-    await this.prisma.guestTransaction.updateMany({
-        where: { slotId, settledAt: null, paymentMethod: 'PENDING' as any },
-        data: { 
-          settledAt: new Date(),
-          paymentMethod: paymentMethod as any,
-          paypalReference: paymentMethod === 'PAYPAL' ? paypalReference : null
-        }
-    });
-
-    const slot = await this.prisma.guestSlot.findUnique({ where: { id: slotId } });
-
-    const [updatedSlot, sampleTx] = await Promise.all([
+    const [updatedSlot] = await Promise.all([
       this.prisma.guestSlot.update({
         where: { id: slotId },
         data: { isActive: true, displayName: `Gast ${slot?.slotNumber}` }
-      }),
-      this.prisma.guestTransaction.findFirst({
-        where: { slotId, settledAt: { not: null } },
-        orderBy: { settledAt: 'desc' },
-        select: { id: true }
       })
     ]);
 
     return {
       slot: updatedSlot,
-      transactionId: sampleTx?.id
+      transactionId: finalTransaction.id
     };
   }
 
