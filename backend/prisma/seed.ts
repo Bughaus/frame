@@ -163,7 +163,7 @@ async function main() {
     { key: 'CLUB_EMAIL', value: 'vorstand@snooker-club.de', group: 'GENERAL', label: 'Club Email' },
     { key: 'CLUB_DISCLAIMER', value: 'Diese Rechnung wurde maschinell erstellt und ist ohne Unterschrift gültig. Bitte überweisen Sie den Betrag innerhalb von 14 Tagen.', group: 'GENERAL', label: 'Rechtlicher Hinweis / Disclaimer' },
     { key: 'CLUB_WEBSITE_DISCLAIMER', value: 'Dies ist eine vereinsinterne Software. Alle Angaben ohne Gewähr.', group: 'GENERAL', label: 'Website Hinweis / Footer' },
-    { key: 'AUTH_RFID_ENABLED', value: 'true', group: 'SECURITY', label: 'RFID Login global aktiviert' },
+    { key: 'AUTH_RFID_ENABLED', value: 'false', group: 'SECURITY', label: 'RFID Login global aktiviert' },
     { key: 'MAIL_SMTP_HOST', value: 'smtp.example.com', group: 'MAIL', label: 'SMTP Host' },
     { key: 'MAIL_SMTP_PORT', value: '587', group: 'MAIL', label: 'SMTP Port' },
     { key: 'MAIL_SMTP_USER', value: 'user@example.com', group: 'MAIL', label: 'SMTP User' },

@@ -52,6 +52,16 @@
                     variant="outlined"
                     prepend-inner-icon="mdi-email"
                   ></v-text-field>
+                  <v-divider class="mb-4"></v-divider>
+                  <v-switch
+                    v-model="configData.AUTH_RFID_ENABLED"
+                    :label="t('admin.rfidLoginEnabled')"
+                    color="primary"
+                    inset
+                    true-value="true"
+                    false-value="false"
+                    hide-details
+                  ></v-switch>
                 </v-col>
                 <v-col cols="12" md="4" class="text-center">
                   <v-sheet 
@@ -271,7 +281,7 @@ const configData = reactive<Record<string, string>>({
   CLUB_EMAIL: '',
   CLUB_DISCLAIMER: '',
   CLUB_WEBSITE_DISCLAIMER: '',
-  AUTH_RFID_ENABLED: 'true',
+  AUTH_RFID_ENABLED: 'false',
   MAIL_SMTP_HOST: '',
   MAIL_SMTP_PORT: '',
   MAIL_SMTP_USER: '',

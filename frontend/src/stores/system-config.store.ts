@@ -19,7 +19,7 @@ export const useSystemConfigStore = defineStore('systemConfig', () => {
     return `${backendOrigin}${relativeUrl}`;
   })
   const websiteDisclaimer = computed(() => configs.value['CLUB_WEBSITE_DISCLAIMER'] || '')
-  const isRfidEnabled = computed(() => configs.value['AUTH_RFID_ENABLED'] !== 'false')
+  const isRfidEnabled = computed(() => configs.value['AUTH_RFID_ENABLED'] === 'true')
 
   async function fetchPublicConfig() {
     try {
