@@ -5,22 +5,28 @@
 
 FRAME is a modern, open-source club management system designed for sports clubs and associations. It streamlines administrative tasks, financial tracking, and member engagement through a clean, intuitive interface.
 
+![FRAME Teaser](docs/screenshots/teaser.png)
+
 ## 🚀 Key Features
 
-- **Member Management**: Track member details, status, and historical data.
-- **Financial Module (Treasurer)**: Comprehensive invoicing system with SEPA export (XML) for banking.
-- **Point of Sale (Kasse)**: Digital cash register for club bars or events with article management and image support.
-- **Working Hours Tracking**: Manage and verify member volunteer hours and event assignments.
+- **Member Management**: Track member details, historical consumption, and membership status.
+- **Financial Module (Accounting)**:
+  - **Abrechnungen (Billing)**: Digital invoicing system with SEPA export (XML) for banking and integrated PayPal history.
+  - **Barkasse (Cashbox)**: Dedicated physical cash management for guest payments and internal receipts (Eigenbelege).
+  - **Master Ledger**: Consolidated, exportable logbook of all club transactions for full transparency.
+- **Point of Sale (POS)**: Modern cash register interface with article images, member tabs, and automatic **PDF receipt generation** for guests.
+- **Working Hours Tracking**: Manage and verify member volunteer hours and event assignments with a visual progress tracker.
 - **Change Requests**: Integrated system for members to request data updates, ensuring GDPR compliance.
 - **Security & RBAC**: Advanced Role-Based Access Control (VORSTAND, MITARBEITER, SCHATZMEISTER, MEMBER).
+- **Session Management**: Dynamic **Sliding Sessions** with proactive background refresh and real-time countdown UI.
 - **Privacy First**: Self-hosted architecture with full data control and built-in PII redaction for staff.
 
 ## 🛠 Tech Stack
 
 - **Frontend**: Vue.js 3, Vuetify 3 (Material Design), Pinia (State Management), Vite.
-- **Backend**: NestJS (Node.js), Prisma ORM.
+- **Backend**: NestJS (Node.js), Prisma ORM, **PDFKit** for receipt/invoice generation.
 - **Database**: PostgreSQL.
-- **Security**: JWT Authentication, bcrypt hashing, SHA-256 for RFID tokens.
+- **Security**: JWT Authentication (with Refresh Tokens), Secure Device Authorization, bcrypt hashing, SHA-256 for RFID tokens.
 
 ## 📦 Setting Up
 
@@ -58,7 +64,7 @@ Distributed under the **GPL-3.0 License**. See `LICENSE` (to be added) for more 
 
 ## 👥 Authors
 
-- **Michael Backhaus** - *Lead Developer* - [GitHub](https://github.com/bughaus)
+- **Michael Backhaus** - [GitHub](https://github.com/bughaus)
 
 ---
 *Created with a vibe of Metal.*
