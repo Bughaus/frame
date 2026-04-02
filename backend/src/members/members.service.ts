@@ -21,14 +21,17 @@ export class MembersService {
     const username = `${createMemberDto.firstName} ${createMemberDto.lastName}`;
 
     return this.prisma.$transaction(async (tx) => {
+      const { roles, ...restDto } = createMemberDto as any;
+      
       const user = await tx.user.create({
         data: {
           username,
           passwordHash: tempPassword,
+          roles: roles && roles.length > 0 ? roles : undefined,
         }
       });
 
-      const { email: _unused, ...memberData } = createMemberDto;
+      const { email: _unused, ...memberData } = restDto;
       const member = await tx.member.create({
         data: {
           ...memberData,
