@@ -88,10 +88,10 @@ export class MembersService {
         userUpdate.roles = roles;
       }
 
-      if (memberData.username && memberData.username !== member.user.username) {
-        const existing = await tx.user.findUnique({ where: { username: memberData.username } });
+      if (username && username !== member.user.username) {
+        const existing = await tx.user.findUnique({ where: { username } });
         if (existing) throw new ConflictException('Dieser Benutzername ist bereits vergeben.');
-        userUpdate.username = memberData.username;
+        userUpdate.username = username;
       }
 
       if (Object.keys(userUpdate).length > 0) {
