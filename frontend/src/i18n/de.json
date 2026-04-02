@@ -255,7 +255,8 @@
     "versions": "App v{app} · API v{api}",
     "sessionExpires": "Sitzung läuft ab in: {time}",
     "active": "Aktiv",
-    "inactive": "Inaktiv"
+    "inactive": "Inaktiv",
+    "invalidLogin": "Ungültige Anmeldedaten."
   },
   "hours": {
     "title": "Arbeitsstunden & Dienste",

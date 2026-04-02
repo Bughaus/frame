@@ -255,7 +255,8 @@
     "versions": "App v{app} · API v{api}",
     "sessionExpires": "Session expires in: {time}",
     "active": "Active",
-    "inactive": "Inactive"
+    "inactive": "Inactive",
+    "invalidLogin": "Invalid login credentials."
   },
   "hours": {
     "title": "Hours & Duties",
