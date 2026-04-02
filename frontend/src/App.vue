@@ -252,14 +252,14 @@
     <v-main>
       <router-view></router-view>
       <RfidEmulator v-if="isDev && rfidEmulatorEnabled" />
-      <AboutDialog v-model="aboutDialog" />
+      <AboutDialog v-model="aboutDialog" :backend-version="backendVersion" />
       <GlobalConfirmDialog />
     </v-main>
 
     <v-footer app border class="bg-surface py-1 px-4 text-caption text-grey">
       <div class="d-flex w-100 justify-space-between align-center">
         <div class="d-flex align-center">
-          <v-btn icon size="x-small" variant="text" class="mr-2" @click="aboutDialog = true">
+          <v-btn icon size="x-small" variant="text" class="mr-1" @click="aboutDialog = true">
             <v-icon size="small">mdi-information-outline</v-icon>
           </v-btn>
           <div class="mr-4">created with a vibe of Metal by <span class="text-primary font-weight-bold">Michael Backhaus</span></div>
@@ -305,9 +305,18 @@
           <span class="mr-3">Login: {{ authStore.user?.lastLoginAt ? new Date(authStore.user.lastLoginAt).toLocaleString(locale === 'de' ? 'de-DE' : 'en-US') : 'Jetzt' }}</span>
           
           <v-divider vertical class="mx-3"></v-divider>
-          <div class="d-flex flex-column align-end" style="line-height: 1.2">
-            <span class="font-weight-bold">App: v{{ appVersion }}</span>
-            <span v-if="backendVersion" style="font-size: 0.7rem; opacity: 0.8">API: v{{ backendVersion }}</span>
+
+          <!-- Session Countdown -->
+          <div class="d-flex align-center" :class="secondsRemaining < 60 ? 'text-error font-weight-bold animate-pulse' : ''">
+            <v-icon size="x-small" class="mr-1" :color="isUserActive ? 'success' : 'grey'">
+              {{ isUserActive ? 'mdi-account-check' : 'mdi-account-sleep' }}
+            </v-icon>
+            <span style="font-size: 0.75rem">
+              {{ t('auth.sessionExpires', { time: timeDisplay }) }}
+            </span>
+            <v-tooltip activator="parent" location="top">
+              {{ isUserActive ? t('auth.active') : t('auth.inactive') }}
+            </v-tooltip>
           </div>
         </div>
       </div>
@@ -335,6 +344,28 @@ const deviceStore = useDeviceStore()
 const router = useRouter()
 const route = useRoute()
 
+// Session & Activity Management
+const currentTime = ref(Date.now())
+const secondsRemaining = computed(() => {
+  if (!authStore.isAuthenticated || !authStore.expiresAt) return 0
+  return Math.max(0, Math.floor((authStore.expiresAt - currentTime.value) / 1000))
+})
+
+const timeDisplay = computed(() => {
+  const m = Math.floor(secondsRemaining.value / 60)
+  const s = secondsRemaining.value % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+})
+
+const isUserActive = computed(() => {
+  // Active if interaction in the last 60 seconds
+  return (currentTime.value - authStore.lastActivity) < 60000
+})
+
+function updateActivity() {
+  authStore.lastActivity = Date.now()
+}
+
 const adminRoutes = [
   '/members',
   '/articles',
@@ -345,9 +376,6 @@ const adminRoutes = [
   '/admin/devices'
 ]
 const isAdminActive = computed(() => adminRoutes.some(r => route.path.startsWith(r)))
-
-declare const __APP_VERSION__: string
-const appVersion = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.1.0'
 
 const aboutDialog = ref(false)
 const backendVersion = ref<string | null>(null)
@@ -377,16 +405,7 @@ const userFullName = computed(() => {
   return u?.username || ''
 })
 
-onMounted(() => {
-  const saved = localStorage.getItem('theme-mode')
-  if (saved && ['vereinTheme', 'vereinDarkTheme', 'highContrastTheme'].includes(saved)) {
-    theme.global.name.value = saved
-  }
-  
-  // Initial device status check
-  deviceStore.fetchStatus()
-})
-
+// User Actions
 function setTheme(name: string) {
   theme.global.name.value = name
   localStorage.setItem('theme-mode', name)
@@ -406,65 +425,78 @@ const logout = () => {
 const inboxCount = ref<{ pendingChanges: number, openFeedback: number, total: number } | null>(null)
 const hasPendingItems = computed(() => !!inboxCount.value?.total)
 let pollingInterval: any = null
+let sessionInterval: any = null
 
 async function refreshAllStatus() {
   if (!authStore.isAuthenticated) {
-    // Still may want to check device status even when and if not auth'd 
-    // for bootstrap visibility on login page
     deviceStore.fetchStatus()
     return
   }
   
-  // 1. Board Status (if applicable)
   if (authStore.hasRole(['VORSTAND'])) {
     try {
       const res = await api.get('/members/inbox-status/count')
       inboxCount.value = res.data
     } catch (e: any) {
-      // Silently ignore hardware restriction errors for background polling
       const isHardwareError = e.response?.data?.message?.includes('autorisierten Club-Geräten') || 
                               e.response?.data?.message?.includes('nicht (mehr) für sensible Funktionen autorisiert');
-      
-      if (!isHardwareError) {
-        console.warn('Could not fetch board inbox status', e)
-      }
+      if (!isHardwareError) console.warn('Could not fetch board inbox status', e)
     }
   }
-
-  // 2. Member Inbox Status
   authStore.fetchInboxStatus()
-  
-  // 3. Device Security Status
   deviceStore.fetchStatus()
 }
 
 onMounted(() => {
+  // Initial Theme Load
+  const saved = localStorage.getItem('theme-mode')
+  if (saved && ['vereinTheme', 'vereinDarkTheme', 'highContrastTheme'].includes(saved)) {
+    theme.global.name.value = saved
+  }
+
   refreshAllStatus()
   fetchBackendVersion()
-  pollingInterval = setInterval(refreshAllStatus, 60000) // Poll every 1 minute
   
-  // Listen for global refresh requests
+  // Buffers
+  pollingInterval = setInterval(refreshAllStatus, 60000)
+  sessionInterval = setInterval(async () => {
+    currentTime.value = Date.now()
+    if (authStore.isAuthenticated) {
+      if (secondsRemaining.value < 300 && secondsRemaining.value > 0 && isUserActive.value) {
+        await authStore.refreshAccessToken()
+      }
+      if (secondsRemaining.value <= 0) logout()
+    }
+  }, 1000)
+
+  // Listeners
+  window.addEventListener('mousemove', updateActivity)
+  window.addEventListener('keydown', updateActivity)
+  window.addEventListener('click', updateActivity)
+  window.addEventListener('scroll', updateActivity)
   window.addEventListener('app:refresh-status', refreshAllStatus)
+  window.addEventListener('storage', () => {
+    rfidEmulatorEnabled.value = localStorage.getItem('dev-rfid-enabled') !== 'false'
+  })
 })
 
 onUnmounted(() => {
   if (pollingInterval) clearInterval(pollingInterval)
+  if (sessionInterval) clearInterval(sessionInterval)
+  window.removeEventListener('mousemove', updateActivity)
+  window.removeEventListener('keydown', updateActivity)
+  window.removeEventListener('click', updateActivity)
+  window.removeEventListener('scroll', updateActivity)
   window.removeEventListener('app:refresh-status', refreshAllStatus)
-})
-
-// Watch for login to trigger initial refresh
-watch(() => authStore.isAuthenticated, (val: boolean) => {
-  if (val) refreshAllStatus()
 })
 
 // Dev RFID Emulator logic
 const isDev = import.meta.env.DEV
 const rfidEmulatorEnabled = ref(localStorage.getItem('dev-rfid-enabled') !== 'false')
 
-onMounted(() => {
-  window.addEventListener('storage', () => {
-    rfidEmulatorEnabled.value = localStorage.getItem('dev-rfid-enabled') !== 'false'
-  })
+// Watch for login to trigger initial refresh
+watch(() => authStore.isAuthenticated, (val: boolean) => {
+  if (val) refreshAllStatus()
 })
 </script>
 
@@ -494,5 +526,15 @@ onMounted(() => {
 .theme--vereinDarkTheme .nav-tab.v-btn--active {
   background-color: rgb(var(--v-theme-surface)) !important;
   color: white !important;
+}
+
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.animate-pulse {
+  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 </style>

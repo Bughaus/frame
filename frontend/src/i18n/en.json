@@ -286,7 +286,10 @@
     "scanInstruction": "Please hold your RFID chip near the reader to log in.",
     "usePassword": "Login with credentials",
     "backToScan": "Back to RFID scan",
-    "versions": "App v{app} · API v{api}"
+    "versions": "App v{app} · API v{api}",
+    "sessionExpires": "Session expires in: {time}",
+    "active": "Active",
+    "inactive": "Inactive"
   },
   "treasurer": {
     "title": "Billing",

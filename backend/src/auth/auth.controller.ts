@@ -19,4 +19,10 @@ export class AuthController {
   async loginRfid(@Body('token') token: string) {
     return this.authService.loginRfid(token);
   }
+
+  @Post('refresh')
+  @HttpCode(HttpStatus.OK)
+  async refresh(@Body('refreshToken') refreshToken: string) {
+    return this.authService.refreshToken(refreshToken);
+  }
 }

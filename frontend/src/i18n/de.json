@@ -251,7 +251,10 @@
     "scanInstruction": "Bitte halten Sie Ihren RFID-Chip an das Lesegerät, um sich anzumelden.",
     "usePassword": "Login mit Zugangsdaten",
     "backToScan": "Zurück zum RFID-Scan",
-    "versions": "App v{app} · API v{api}"
+    "versions": "App v{app} · API v{api}",
+    "sessionExpires": "Sitzung läuft ab in: {time}",
+    "active": "Aktiv",
+    "inactive": "Inaktiv"
   },
   "hours": {
     "title": "Arbeitsstunden & Dienste",

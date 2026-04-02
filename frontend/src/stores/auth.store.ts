@@ -4,9 +4,13 @@ import { api } from '../api/axios'
 
 export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(localStorage.getItem('accessToken') || null)
+  const refreshToken = ref<string | null>(localStorage.getItem('refreshToken') || null)
   const storedUser = localStorage.getItem('user')
   const user = ref<any>(storedUser ? JSON.parse(storedUser) : null)
   const inboxStatus = ref<any>(null)
+  
+  const expiresAt = ref<number>(Number(localStorage.getItem('expiresAt')) || 0)
+  const lastActivity = ref<number>(Date.now())
   
   const isAuthenticated = computed(() => !!accessToken.value)
 
@@ -32,11 +36,45 @@ export const useAuthStore = defineStore('auth', () => {
 
   function handleLoginSuccess(data: any) {
     accessToken.value = data.accessToken
+    refreshToken.value = data.refreshToken
     user.value = data.user
+    
+    // Calculate expiration: current time + expiresIn (seconds)
+    const expiry = Date.now() + (data.expiresIn || 900) * 1000
+    expiresAt.value = expiry
+    lastActivity.value = Date.now()
+
     localStorage.setItem('accessToken', data.accessToken)
+    localStorage.setItem('refreshToken', data.refreshToken)
     localStorage.setItem('user', JSON.stringify(data.user))
-    fetchInboxStatus() // Initial fetch
+    localStorage.setItem('expiresAt', expiry.toString())
+    
+    fetchInboxStatus() 
     return true
+  }
+
+  async function refreshAccessToken() {
+    if (!refreshToken.value) return false
+    try {
+      const { data } = await api.post('/auth/refresh', { refreshToken: refreshToken.value })
+      
+      accessToken.value = data.accessToken
+      refreshToken.value = data.refreshToken
+      
+      const expiry = Date.now() + (data.expiresIn || 900) * 1000
+      expiresAt.value = expiry
+      
+      localStorage.setItem('accessToken', data.accessToken)
+      localStorage.setItem('refreshToken', data.refreshToken)
+      localStorage.setItem('expiresAt', expiry.toString())
+      
+      console.log('Session refreshed successfully')
+      return true
+    } catch (e) {
+      console.error('Session refresh failed', e)
+      logout()
+      return false
+    }
   }
 
   async function fetchInboxStatus() {
@@ -56,9 +94,13 @@ export const useAuthStore = defineStore('auth', () => {
 
   function logout() {
     accessToken.value = null
+    refreshToken.value = null
     user.value = null
+    expiresAt.value = 0
     localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
     localStorage.removeItem('user')
+    localStorage.removeItem('expiresAt')
     inboxStatus.value = null
   }
 
@@ -67,5 +109,20 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value.roles.some((r: string) => allowedRoles.includes(r))
   }
 
-  return { accessToken, user, inboxStatus, isAuthenticated, login, loginRfid, setToken, logout, hasRole, fetchInboxStatus }
+  return { 
+    accessToken, 
+    refreshToken, 
+    user, 
+    inboxStatus, 
+    isAuthenticated, 
+    expiresAt, 
+    lastActivity,
+    login, 
+    loginRfid, 
+    setToken, 
+    logout, 
+    hasRole, 
+    fetchInboxStatus,
+    refreshAccessToken
+  }
 })

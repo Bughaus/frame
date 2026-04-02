@@ -36,10 +36,12 @@
 
           <!-- Version & Status -->
           <v-list-item prepend-icon="mdi-tag-outline">
-            <v-list-item-title class="font-weight-bold">Version</v-list-item-title>
-            <div class="mt-1">
-              <v-chip size="x-small" color="primary" variant="tonal" class="mr-2">v{{ version }}</v-chip>
-              <v-chip size="x-small" color="warning" variant="tonal">Prototype · Early Development</v-chip>
+            <v-list-item-title class="font-weight-bold">System Status & Version</v-list-item-title>
+            <div class="mt-1 d-flex align-center flex-wrap gap-2">
+              <v-chip size="x-small" color="primary" variant="flat" class="mr-1">App: v{{ version }}</v-chip>
+              <v-chip v-if="backendVersion" size="x-small" color="secondary" variant="tonal" class="mr-1">API: v{{ backendVersion }}</v-chip>
+              <v-chip v-else size="x-small" color="error" variant="tonal" class="mr-1">API: Connecting...</v-chip>
+              <v-chip size="x-small" color="warning" variant="outlined">Prototype · Early Development</v-chip>
             </div>
           </v-list-item>
 
@@ -181,6 +183,10 @@
 
 <script setup lang="ts">
 const model = defineModel<boolean>({ default: false })
+
+defineProps<{
+  backendVersion: string | null
+}>()
 
 declare const __APP_VERSION__: string
 const version = typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : '0.1.0'

@@ -119,4 +119,35 @@ export class AuthService {
       }
     };
   }
+
+  async refreshToken(token: string) {
+    const refreshToken = await this.prisma.refreshToken.findUnique({
+      where: { token },
+      include: { user: true }
+    });
+
+    if (!refreshToken || refreshToken.expiresAt < new Date() || !refreshToken.user.isActive) {
+      throw new UnauthorizedException('Invalid or expired refresh token');
+    }
+
+    const user = refreshToken.user;
+    const payload = { sub: user.id, username: user.username, roles: user.roles };
+    const accessToken = this.jwtService.sign(payload);
+
+    // Rotate refresh token
+    const newRefreshString = await bcrypt.hash(user.id + Date.now().toString(), 10);
+    await this.prisma.refreshToken.update({
+      where: { id: refreshToken.id },
+      data: {
+        token: newRefreshString,
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      }
+    });
+
+    return {
+      accessToken,
+      refreshToken: newRefreshString,
+      expiresIn: 900 // 15 minutes
+    };
+  }
 }
